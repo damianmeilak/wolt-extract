@@ -1,0 +1,2763 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CSV Extractor — Upload. Map. Export.</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Inter', sans-serif; background: #EDEBE5; min-height: 100vh; color: #1a1a1a; }
+#app { max-width: 680px; margin: 0 auto; padding: 3rem 2rem; }
+
+/* Login screen */
+#login-screen {
+  min-height: 100vh; display: flex; align-items: center; justify-content: center;
+  background: #EDEBE5; padding: 2rem;
+}
+.login-card {
+  background: #E8E5DE; border: 1px solid #D0CEC8; border-radius: 18px;
+  padding: 2.5rem 2rem; max-width: 360px; width: 100%;
+}
+.login-icon { width: 48px; height: 48px; background: #111111; border-radius: 14px; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.25rem; }
+.login-icon i { color: #f5f3ee; font-size: 22px; }
+.login-title { font-size: 20px; font-weight: 700; text-align: center; margin-bottom: 6px; color: #111111; }
+.login-sub { font-size: 13px; color: #7a7670; text-align: center; margin-bottom: 1.75rem; }
+.login-field { margin-bottom: 14px; }
+.login-field label { font-size: 12px; font-weight: 600; color: #5a5650; display: block; margin-bottom: 6px; }
+.login-field input { width: 100%; background: #F5F3EE; border: 1px solid #D0CEC8; border-radius: 10px; padding: 10px 12px; font-size: 14px; font-family: 'Inter', sans-serif; outline: none; box-sizing: border-box; }
+.login-field input:focus { border-color: #9a9690; }
+.login-password-wrap { position: relative; }
+.login-password-wrap input { padding-right: 40px; }
+.login-eye-btn { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: #9a9690; padding: 6px; display: flex; align-items: center; justify-content: center; }
+.login-eye-btn:hover { color: #5a5650; }
+.login-eye-btn i { font-size: 17px; }
+.login-remember-row { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: #5a5650; margin-bottom: 14px; cursor: pointer; user-select: none; }
+.login-remember-row input[type="checkbox"] { width: 15px; height: 15px; cursor: pointer; accent-color: #111111; }
+.login-btn { width: 100%; background: #111111; color: #f5f3ee; border: none; border-radius: 10px; padding: 11px; font-size: 14px; font-weight: 600; cursor: pointer; font-family: 'Inter', sans-serif; margin-top: 6px; transition: background 0.15s; }
+.login-btn:hover { background: #2a2a2a; }
+.login-error { font-size: 12px; color: #a04035; text-align: center; margin-top: 10px; display: none; }
+
+/* Top bar shown once logged in */
+.app-topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid #D0CEC8; }
+.app-topbar-user { font-size: 12px; color: #7a7670; display: flex; align-items: center; gap: 6px; }
+.app-topbar-user .role-badge { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 99px; }
+.role-badge.admin { background: #fbe9c8; color: #8a5a1a; }
+.role-badge.user { background: #dce8f8; color: #1a4a80; }
+.logout-btn { font-size: 12px; color: #a04035; background: none; border: none; cursor: pointer; text-decoration: underline; font-family: 'Inter', sans-serif; }
+
+#main-app { display: none; }
+
+.header { text-align: center; margin-bottom: 2.5rem; }
+.header-title { font-size: 34px; font-weight: 700; color: #111111; letter-spacing: -0.02em; line-height: 1.15; }
+.step { margin-bottom: 1.25rem; }
+.step-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.step-num { min-width: 28px; height: 26px; padding: 0 6px; border-radius: 99px; background: #111111; color: #f5f3ee; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.step-num.done { background: #1a6640; }
+.step-num.locked { background: #C5C2BB; color: #9a9690; }
+.step-title { font-size: 15px; font-weight: 600; color: #111111; }
+.step-title.locked { color: #9a9690; }
+.step-badge { font-size: 10px; font-weight: 600; border-radius: 99px; padding: 3px 10px; }
+.step-badge.done { background: #C8F0E0; color: #1a6640; border: 1px solid #9adfc0; }
+.step-badge.pending { background: #D9D6CE; color: #9a9690; }
+.drop-zone { background: #D9D6CE; border: none; border-radius: 18px; padding: 2.5rem 2rem; text-align: center; cursor: pointer; transition: background 0.2s; min-height: 180px; display: flex; flex-direction: column; align-items: center; justify-content: center; box-sizing: border-box; }
+.location-col { display: flex; flex-direction: column; }
+.location-col > div[id$="-dropwrap"] { flex: 1; display: flex; flex-direction: column; }
+.location-col > div[id$="-dropwrap"] > .drop-zone { flex: 1; }
+.drop-zone:hover, .drop-zone.drag-over { background: #CFCCC4; }
+.drop-zone.locked-zone { background: #E4E1DA; cursor: not-allowed; opacity: 0.6; pointer-events: none; }
+.dz-cloud { margin-bottom: 1rem; }
+.dz-cloud i { font-size: 38px; color: #1a1a1a; }
+.dz-title { font-size: 15px; font-weight: 600; color: #111111; margin-bottom: 5px; }
+.dz-sub { font-size: 13px; color: #7a7670; line-height: 1.7; font-weight: 400; }
+.dz-done-bar { background: #C8F0E0; border-radius: 12px; padding: 12px 16px; display: flex; align-items: center; gap: 10px; border: 1px solid #9adfc0; }
+.dz-done-bar.dz-warn { background: #FFF3CD; border-color: #FFBF47; }
+.dz-done-bar i { color: #1a6640; font-size: 18px; }
+.dz-done-bar span { font-size: 13px; font-weight: 500; color: #1a6640; flex: 1; }
+.dz-done-bar button { background: none; border: 1px solid #9adfc0; border-radius: 8px; color: #1a6640; font-size: 11px; font-weight: 600; font-family: 'Inter', sans-serif; padding: 4px 10px; cursor: pointer; }
+.dz-done-bar button:hover { background: #b8e8d0; }
+input[type=file] { display: none; }
+.loading-block { display: none; margin-top: 10px; }
+.loading-header { display: flex; justify-content: space-between; margin-bottom: 6px; }
+.loading-label { font-size: 12px; font-weight: 600; color: #1a1a1a; }
+.loading-pct { font-size: 12px; color: #7a7670; font-family: monospace; }
+.progress-track { width: 100%; height: 4px; background: #D9D6CE; border-radius: 99px; overflow: hidden; }
+.progress-fill { height: 100%; width: 0%; background: #111111; border-radius: 99px; transition: width 0.15s ease; }
+.loading-step { font-size: 11px; color: #9a9690; margin-top: 5px; font-weight: 400; }
+.divider { border: none; border-top: 1px solid #D9D6CE; margin: 1.5rem 0; }
+
+/* ── MULTI-PAGE NAVIGATION ── */
+.page { display: none; }
+.page.active { display: block; }
+.home-page { max-width: 700px; margin: 0 auto; padding: 1rem 0 2rem; }
+.home-title { font-size: 22px; font-weight: 700; color: #1a1a1a; text-align: center; margin-bottom: 6px; }
+.home-subtitle { font-size: 13px; color: #9a9690; text-align: center; margin-bottom: 2rem; }
+.home-cards { display: flex; flex-direction: column; gap: 14px; }
+.home-card { background: #E8E5DE; border: 1px solid #D0CEC8; border-radius: 16px; padding: 20px 24px; cursor: pointer; display: flex; align-items: center; gap: 16px; transition: background 0.15s, box-shadow 0.15s; }
+.home-card:hover { background: #DEDAD2; box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
+.home-card-num { min-width: 36px; height: 36px; border-radius: 99px; background: #111111; color: #f5f3ee; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; padding: 0 8px; }
+.home-card-body { flex: 1; }
+.home-card-title { font-size: 15px; font-weight: 700; color: #1a1a1a; margin-bottom: 3px; }
+.home-card-desc { font-size: 12px; color: #7a7670; }
+.home-card-arrow { color: #9a9690; font-size: 20px; }
+.page-nav { display: flex; align-items: center; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+.page-nav-home { background: none; border: 1px solid #D0CEC8; border-radius: 8px; padding: 5px 12px; font-size: 12px; font-weight: 600; color: #5a5650; cursor: pointer; font-family: 'Inter',sans-serif; display: inline-flex; align-items: center; gap: 5px; transition: background 0.15s; }
+.page-nav-home:hover { background: #E8E5DE; }
+.page-nav-sep { color: #C5C2BB; font-size: 14px; }
+.page-nav-btn { background: none; border: 1px solid transparent; border-radius: 8px; padding: 5px 12px; font-size: 12px; font-weight: 600; color: #7a7670; cursor: pointer; font-family: 'Inter',sans-serif; transition: background 0.15s, color 0.15s; }
+.page-nav-btn:hover { background: #E8E5DE; color: #1a1a1a; }
+.page-nav-btn.active { background: #111111; color: #f5f3ee; border-color: #111111; }
+.page-desc { background: #E8E5DE; border: 1px solid #D0CEC8; border-radius: 14px; padding: 20px 24px; margin-bottom: 24px; font-size: 13px; color: #5a5650; line-height: 1.65; }
+.page-desc h2 { font-size: 16px; font-weight: 700; color: #111111; margin: 0 0 10px 0; }
+.page-desc h3 { font-size: 13px; font-weight: 700; color: #1a1a1a; margin: 14px 0 4px 0; }
+.page-desc p { margin: 0 0 8px 0; }
+.page-desc ul { margin: 4px 0 8px 16px; padding: 0; }
+.page-desc ul li { margin-bottom: 3px; }
+.page-desc .path { font-family: 'Courier New', monospace; background: #D9D6CE; padding: 2px 6px; border-radius: 5px; font-size: 12px; color: #1a1a1a; display: inline-block; margin: 2px 0; }
+.page-desc details { margin-top: 12px; }
+.page-desc summary { font-size: 12.5px; font-weight: 600; color: #5a5650; cursor: pointer; user-select: none; list-style: none; display: flex; align-items: center; gap: 6px; padding: 8px 0 4px; border-top: 1px solid #D0CEC8; }
+.page-desc summary::before { content: '▸'; font-size: 10px; transition: transform 0.2s; }
+.page-desc details[open] summary::before { transform: rotate(90deg); }
+.page-desc details .details-body { padding-top: 6px; }
+
+/* Hover tooltip (?) */
+.tooltip-wrap { position: relative; display: inline-flex; align-items: center; margin-left: 6px; vertical-align: middle; }
+.tooltip-icon { display: inline-flex; align-items: center; justify-content: center; width: 17px; height: 17px; border-radius: 99px; background: #C5C2BB; color: #5a5650; font-size: 10px; font-weight: 700; cursor: default; font-family: 'Inter', sans-serif; flex-shrink: 0; transition: background 0.15s; line-height: 1; }
+.tooltip-icon:hover { background: #9a9690; color: #1a1a1a; }
+.tooltip-box { display: none; position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%); background: #1a1a1a; color: #f5f3ee; font-size: 11px; font-weight: 400; line-height: 1.55; border-radius: 8px; padding: 8px 12px; white-space: normal; word-break: break-word; z-index: 9999; box-shadow: 0 4px 16px rgba(0,0,0,0.22); pointer-events: none; width: 260px; text-align: left; }
+.tooltip-box::after { content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%); border: 5px solid transparent; border-top-color: #1a1a1a; }
+.tooltip-wrap:hover .tooltip-box { display: block; }
+
+/* Footer */
+.app-footer { text-align: center; font-size: 11px; color: #C5C2BB; margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid #D9D6CE; }
+
+/* Stock Threshold */
+.threshold-row { display: flex; align-items: center; gap: 12px; background: #E8E5DE; border: 1px solid #D0CEC8; border-radius: 12px; padding: 12px 16px; margin-bottom: 14px; transition: box-shadow 0.3s; }
+.threshold-row.pulse { animation: threshold-pulse 1s ease-out 2; }
+@keyframes threshold-pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(17,17,17,0.15); border-color: #9a9690; }
+  40%  { box-shadow: 0 0 0 6px rgba(17,17,17,0.08); border-color: #555; }
+  100% { box-shadow: 0 0 0 0 rgba(17,17,17,0); border-color: #D0CEC8; }
+}
+.threshold-label { font-size: 13px; font-weight: 600; color: #1a1a1a; display: flex; align-items: center; gap: 4px; flex: 1; }
+.threshold-input { width: 120px; background: #F5F3EE; border: 1px solid #D0CEC8; border-radius: 8px; padding: 7px 10px; font-size: 13px; font-family: 'Inter', sans-serif; outline: none; }
+.threshold-input:focus { border-color: #9a9690; }
+
+/* Privacy note under header */
+.header-privacy { font-size: 11px; color: #9a9690; text-align: center; margin-top: 6px; }
+.location-note { font-size: 12.5px; color: #7a7670; margin-bottom: 14px; }
+.loc-toggle { display: flex; gap: 6px; margin-bottom: 16px; background: #E0DDD6; border-radius: 10px; padding: 4px; }
+.loc-toggle-btn { flex: 1; background: none; border: none; padding: 8px 10px; font-size: 12.5px; font-weight: 600; color: #7a7670; border-radius: 8px; cursor: pointer; font-family: 'Inter', sans-serif; transition: background 0.15s, color 0.15s; }
+.loc-toggle-btn.active { background: #111111; color: #f5f3ee; }
+.location-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: stretch; }
+.location-col-title { font-size: 13px; font-weight: 700; color: #1a1a1a; margin-bottom: 8px; text-align: center; }
+@media (max-width: 640px) {
+  .location-grid { grid-template-columns: 1fr; }
+}
+.section-label { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #9a9690; margin-bottom: 12px; display: flex; align-items: center; gap: 10px; }
+.section-label::after { content: ''; flex: 1; height: 1px; background: #D9D6CE; }
+
+.mapping-collapsible { margin-bottom: 1.5rem; border: 1px solid #D0CEC8; border-radius: 14px; background: #E8E5DE; overflow: hidden; }
+.mapping-collapsible-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; cursor: pointer; user-select: none; }
+.mapping-collapsible-header:hover { background: #E2DFD8; }
+.mapping-collapsible-title { font-size: 13px; font-weight: 600; color: #1a1a1a; display: flex; align-items: center; gap: 8px; }
+.mapping-collapsible-count { font-size: 10px; background: #D0CEC8; color: #5a5650; border-radius: 99px; padding: 2px 8px; font-weight: 600; }
+.mapping-collapsible-chevron { font-size: 14px; color: #9a9690; transition: transform 0.2s; }
+.mapping-collapsible.open .mapping-collapsible-chevron { transform: rotate(180deg); }
+.mapping-collapsible-body { display: none; padding: 4px 14px 14px; }
+.mapping-collapsible.open .mapping-collapsible-body { display: block; }
+
+.mapping-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.mapping-item { background: #F5F3EE; border: 1px solid #D0CEC8; border-radius: 12px; padding: 10px 14px; display: flex; align-items: center; gap: 10px; }
+.mapping-item.full { grid-column: span 2; }
+.mapping-item.muted { opacity: 0.4; }
+.map-src-tag { font-family: monospace; font-size: 10.5px; color: #3a3a3a; background: #D9D6CE; border: 1px solid #C5C2BB; border-radius: 6px; padding: 3px 8px; white-space: nowrap; flex-shrink: 0; }
+.map-dest-name { font-size: 13px; color: #1a1a1a; flex: 1; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.badge { display: inline-flex; align-items: center; gap: 3px; font-size: 10px; border-radius: 99px; padding: 3px 10px; font-weight: 600; flex-shrink: 0; }
+.badge-green { background: #C8F0E0; color: #1a6640; border: 1px solid #9adfc0; }
+.badge-dark { background: #111111; color: #f5f3ee; }
+.badge-gray { background: #D9D6CE; color: #7a7670; border: 1px solid #C5C2BB; }
+.badge-blue { background: #dce8f8; color: #1a4a80; border: 1px solid #a8c8f0; }
+.badge-purple { background: #ece5f8; color: #5a3a8a; border: 1px solid #cdb8e8; }
+.badge-amber { background: #fbe9c8; color: #8a5a1a; border: 1px solid #f0c878; }
+
+.rules-grid { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.rule-chip { font-size: 11px; background: #F5F3EE; border: 1px solid #D0CEC8; border-radius: 99px; padding: 4px 10px 4px 12px; color: #3a3a3a; display: inline-flex; align-items: center; gap: 6px; }
+.rule-chip.and { background: #ece5f8; border-color: #cdb8e8; color: #5a3a8a; font-weight: 500; }
+.rule-chip.exclude { background: #fdeceb; border-color: #f0c8c5; color: #a04035; }
+.rule-chip.brand-exclude { background: #2a1010; border-color: #4a1818; color: #ffb8b0; font-weight: 600; }
+.rule-chip .chip-remove { cursor: pointer; font-size: 14px; line-height: 1; opacity: 0.5; }
+.rule-chip .chip-remove:hover { opacity: 1; }
+.rules-subtitle { font-size: 11px; color: #9a9690; margin: 10px 0 6px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
+.rules-edit-row { display: flex; gap: 6px; margin-top: 4px; margin-bottom: 4px; }
+.rules-edit-row input { flex: 1; background: #F5F3EE; border: 1px solid #D0CEC8; border-radius: 8px; padding: 7px 10px; font-size: 12px; font-family: 'Inter', sans-serif; outline: none; }
+.rules-edit-row input:focus { border-color: #9a9690; }
+.rules-edit-row button { background: #111111; color: #f5f3ee; border: none; border-radius: 8px; padding: 7px 12px; font-size: 11px; font-weight: 600; cursor: pointer; font-family: 'Inter', sans-serif; white-space: nowrap; }
+.rules-edit-row button:hover { background: #2a2a2a; }
+.rules-save-note { font-size: 11px; color: #1a6640; margin-top: 8px; display: none; }
+.rules-reset-btn { font-size: 11px; color: #a04040; background: none; border: none; cursor: pointer; text-decoration: underline; font-family: 'Inter', sans-serif; margin-top: 10px; }
+
+#results-section { display: none; }
+.stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 1.5rem; }
+.stats-row.weight-row { grid-template-columns: repeat(2, 1fr); }
+.stat-card { background: #E8E5DE; border: 1px solid #D0CEC8; border-radius: 14px; padding: 14px 16px; }
+.stat-num { font-size: 26px; font-weight: 700; color: #111111; line-height: 1; margin-bottom: 3px; letter-spacing: -0.01em; }
+.stat-lbl { font-size: 11px; color: #9a9690; font-weight: 500; }
+.toolbar { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+.btn-primary { display: inline-flex; align-items: center; gap: 7px; background: #111111; color: #f5f3ee; border: none; border-radius: 10px; padding: 10px 20px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: 'Inter', sans-serif; transition: background 0.15s; }
+.btn-primary:hover { background: #2a2a2a; }
+.btn-ghost { display: inline-flex; align-items: center; gap: 7px; background: transparent; color: #7a7670; border: 1px solid #C5C2BB; border-radius: 10px; padding: 10px 16px; font-size: 13px; font-weight: 500; cursor: pointer; font-family: 'Inter', sans-serif; transition: border-color 0.15s, color 0.15s; }
+.btn-ghost:hover { border-color: #9a9690; color: #3a3a3a; }
+.btn-secondary { display: inline-flex; align-items: center; gap: 6px; background: #dce8f8; color: #1a4a80; border: 1px solid #a8c8f0; border-radius: 8px; padding: 6px 12px; font-size: 11px; font-weight: 600; cursor: pointer; font-family: 'Inter', sans-serif; transition: background 0.15s; }
+.btn-secondary:hover { background: #c8dcf4; }
+.inspector-card { background: #E8E5DE; border: 1px solid #D0CEC8; border-radius: 14px; overflow: hidden; margin-bottom: 1.5rem; }
+.inspector-tabs { display: flex; border-bottom: 1px solid #D0CEC8; }
+.inspector-tab { flex: 1; padding: 11px 8px; font-size: 11px; font-weight: 600; color: #9a9690; cursor: pointer; text-align: center; border: none; background: none; font-family: 'Inter', sans-serif; transition: color 0.15s, background 0.15s; line-height: 1.3; }
+.inspector-tab.active { color: #111111; background: #EDEBE5; border-bottom: 2px solid #111111; }
+.inspector-tab:hover { color: #3a3a3a; }
+.tab-count { display: inline-block; background: #D0CEC8; color: #3a3a3a; border-radius: 99px; font-size: 10px; font-weight: 700; padding: 1px 7px; margin-left: 4px; }
+.inspector-tab.active .tab-count { background: #111111; color: #f5f3ee; }
+.tab-count.red { background: #f0c8c8; color: #a04040; }
+.inspector-tab.active .tab-count.red { background: #a04040; color: #fff; }
+.tab-count.amber { background: #fbe9c8; color: #8a5a1a; }
+.inspector-tab.active .tab-count.amber { background: #8a5a1a; color: #fff; }
+.inspector-body { padding: 14px; }
+.panel-header-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+.search-row { margin-bottom: 12px; }
+.search-input { width: 100%; background: #F5F3EE; border: 1px solid #D0CEC8; border-radius: 8px; padding: 8px 12px; font-size: 13px; font-family: 'Inter', sans-serif; color: #1a1a1a; outline: none; box-sizing: border-box; }
+.search-input:focus { border-color: #9a9690; }
+.result-pill { display: flex; align-items: center; gap: 10px; background: #F5F3EE; border: 1px solid #D0CEC8; border-radius: 10px; padding: 10px 14px; margin-bottom: 8px; }
+.rp-sku { font-family: monospace; font-size: 12px; font-weight: 600; color: #111111; flex: 1; }
+.rp-name { font-size: 12px; color: #7a7670; flex: 2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rp-stock { font-size: 13px; font-weight: 700; color: #1a6640; min-width: 50px; text-align: right; }
+.rp-zero { font-size: 13px; font-weight: 700; color: #a07020; min-width: 50px; text-align: right; }
+.rp-miss { font-size: 12px; font-weight: 600; color: #a04040; min-width: 70px; text-align: right; }
+.rp-weight { font-size: 12px; font-weight: 700; color: #5a3a8a; min-width: 50px; text-align: right; }
+.result-pill.matched { border-color: #9adfc0; }
+.result-pill.zero { border-color: #f0d890; background: #fffdf0; }
+.result-pill.unmatched { border-color: #f0c8c8; background: #fdf5f5; }
+.result-pill.weighted { border-color: #cdb8e8; background: #faf7fd; }
+.unmatched-list { max-height: 260px; overflow-y: auto; }
+.unmatched-note { font-size: 12px; color: #7a7670; margin-bottom: 10px; line-height: 1.5; font-weight: 400; }
+.empty-state { text-align: center; padding: 1.5rem; color: #9a9690; font-size: 13px; }
+.table-card { border: 1px solid #D0CEC8; border-radius: 14px; overflow: hidden; background: #E8E5DE; }
+.table-scroll { overflow-x: auto; max-height: 300px; overflow-y: auto; }
+table { border-collapse: collapse; min-width: 100%; }
+thead { position: sticky; top: 0; z-index: 2; }
+th { padding: 10px 14px; text-align: left; font-size: 10px; font-weight: 600; color: #9a9690; white-space: nowrap; background: #E0DDD6; border-bottom: 1px solid #D0CEC8; letter-spacing: 0.06em; text-transform: uppercase; font-family: 'Inter', sans-serif; }
+td { padding: 9px 14px; font-size: 12px; color: #3a3a3a; border-bottom: 1px solid #E0DDD6; white-space: nowrap; max-width: 180px; overflow: hidden; text-overflow: ellipsis; font-weight: 400; }
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:hover td { background: #E0DDD6; }
+td.empty { color: #C5C2BB; }
+td.url { color: #4a6fa8; font-size: 11px; }
+td.stock-filled { color: #1a6640; font-weight: 600; }
+td.stock-zero { color: #a07020; font-weight: 600; }
+td.weight-set { color: #5a3a8a; font-weight: 600; }
+td.category-set { color: #1a4a80; font-weight: 600; }
+</style>
+</head>
+<body>
+
+<!-- LOGIN SCREEN -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-icon"><i class="ti ti-lock"></i></div>
+    <div class="login-title">CSV Extractor</div>
+    <div class="login-sub">Sign in to continue</div>
+    <div class="login-field">
+      <label>Username</label>
+      <input type="text" id="login-username" autocomplete="username" oninput="onLoginUsernameChange()" onkeydown="if(event.key==='Enter')document.getElementById('login-password').focus()">
+    </div>
+    <div class="login-field">
+      <label>Password</label>
+      <div class="login-password-wrap">
+        <input type="password" id="login-password" autocomplete="current-password" onkeydown="if(event.key==='Enter')attemptLogin()">
+        <button type="button" class="login-eye-btn" id="login-eye-btn" onclick="toggleLoginPasswordVisibility()" aria-label="Show password">
+          <i class="ti ti-eye" id="login-eye-icon"></i>
+        </button>
+      </div>
+    </div>
+    <label class="login-remember-row" id="login-remember-row" style="display:none">
+      <input type="checkbox" id="login-remember-checkbox">
+      <span>Remember me for 2 months</span>
+    </label>
+    <button class="login-btn" onclick="attemptLogin()">Sign in</button>
+    <div class="login-error" id="login-error">Incorrect username or password</div>
+  </div>
+</div>
+
+<!-- MAIN APP (hidden until logged in) -->
+<div id="main-app">
+<div id="app">
+
+  <div class="app-topbar">
+    <div class="app-topbar-user">
+      <i class="ti ti-user-circle"></i>
+      <span id="current-username"></span>
+      <span class="role-badge" id="current-role-badge"></span>
+    </div>
+    <button class="logout-btn" onclick="logout()">Log out</button>
+  </div>
+
+  <!-- Page navigation bar (shown on all sub-pages) -->
+  <div class="page-nav" id="page-nav" style="display:none">
+    <button class="page-nav-home" onclick="showPage('home')"><i class="ti ti-home"></i> Home</button>
+    <span class="page-nav-sep">|</span>
+    <button class="page-nav-btn" id="nav-btn-import" onclick="showPage('import')">1 &nbsp; Product Import</button>
+    <button class="page-nav-btn" id="nav-btn-wolt" onclick="showPage('wolt')">2 &nbsp; Wolt Stock Updater</button>
+    <button class="page-nav-btn" id="nav-btn-check" onclick="showPage('check')">3 &nbsp; Check Stock</button>
+  </div>
+
+  <!-- HOME PAGE -->
+  <div class="page active" id="page-home">
+    <div class="home-page">
+      <div class="home-title">Upload. Map. Export.</div>
+      <div class="home-subtitle">Files are not uploaded to any external servers or cloud services.</div>
+      <div class="home-cards">
+        <div class="home-card" onclick="showPage('import')">
+          <div class="home-card-num">1</div>
+          <div class="home-card-body">
+            <div class="home-card-title">Product Import</div>
+            <div class="home-card-desc">Import products from Magento, match stock by location and categories, then export to Wolt.</div>
+          </div>
+          <i class="ti ti-chevron-right home-card-arrow"></i>
+        </div>
+        <div class="home-card" onclick="showPage('wolt')">
+          <div class="home-card-num">2</div>
+          <div class="home-card-body">
+            <div class="home-card-title">Wolt Stock Updater</div>
+            <div class="home-card-desc">Update stock amounts and prices on your Wolt listing from LS Retail and Magento.</div>
+          </div>
+          <i class="ti ti-chevron-right home-card-arrow"></i>
+        </div>
+        <div class="home-card" onclick="showPage('check')">
+          <div class="home-card-num">3</div>
+          <div class="home-card-body">
+            <div class="home-card-title">Check Stock</div>
+            <div class="home-card-desc">Find products that are in your stock export but not yet listed on Wolt.</div>
+          </div>
+          <i class="ti ti-chevron-right home-card-arrow"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAGE 1A: Product Import (Steps 1A + 1B + 1C + Results) -->
+  <div class="page" id="page-import">
+
+  <div class="page-desc">
+    <h2>1 &nbsp; Product Import</h2>
+    <p>Import products from Magento, match stock by location and categories, then export them to Wolt.</p>
+    <details>
+      <summary>How to use this page</summary>
+      <div class="details-body">
+        <h3>Step 1A: Export products from Magento</h3>
+        <p>In Magento, navigate to:<br><span class="path">System &gt; Export &gt; Entity Type &gt; Products</span></p>
+        <h3>Step 1B: Export Inventory Valuation from LS Retail</h3>
+        <p>In LS Retail, navigate to:<br><span class="path">LS Retail &gt; Inventory Valuation</span><br>Apply the Location Filter, choose the required store, and export as a <strong>Microsoft Excel Document (Data &amp; Layout)</strong>.</p>
+        <h3>Set the Stock Threshold</h3>
+        <p>Select the threshold you want. For example, if you enter <strong>3</strong>, only products with a stock quantity of 3 or more will be marked as <strong>True (Enabled)</strong>.</p>
+        <h3>Step 1C: Update product categories (optional)</h3>
+        <p>In LS Retail, navigate to:<br><span class="path">LS Retail &gt; Configuration Packages &gt; Item Hierarchy &gt; 10000922 &gt; Export to Excel</span></p>
+      </div>
+    </details>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <div class="step-num" id="s1-num">1A</div>
+      <div class="step-title">Product Import</div>
+      <span class="tooltip-wrap">
+        <span class="tooltip-icon">?</span>
+        <span class="tooltip-box">System &gt; Export &gt; Entity Type &gt; Products</span>
+      </span>
+      <span class="step-badge pending" id="s1-badge">Waiting</span>
+    </div>
+    <div id="s1-dropwrap">
+      <div class="drop-zone" id="dz1" onclick="document.getElementById('fi1').click()">
+        <div class="dz-cloud"><i class="ti ti-cloud-upload"></i></div>
+        <div class="dz-title">Upload your product file here</div>
+        <div class="dz-sub">Drag &amp; Drop<br>System &gt; Export &gt; Entity Type &gt; Products<br><span style="color:#9a9690;font-size:11px">This import includes: sku · name · price · description · additional_images</span></div>
+        <input type="file" id="fi1" accept=".csv,.tsv,.txt">
+      </div>
+    </div>
+    <div class="loading-block" id="load1">
+      <div class="loading-header"><span class="loading-label" id="load1-label">Processing…</span><span class="loading-pct" id="load1-pct">0%</span></div>
+      <div class="progress-track"><div class="progress-fill" id="load1-fill"></div></div>
+      <div class="loading-step" id="load1-step"></div>
+    </div>
+  </div>
+
+  <div class="mapping-collapsible" id="mapcol-1">
+    <div class="mapping-collapsible-header" onclick="toggleMapping('mapcol-1')">
+      <span class="mapping-collapsible-title"><i class="ti ti-arrows-exchange"></i> Column mapping — Product Import <span class="mapping-collapsible-count">6</span></span>
+      <i class="ti ti-chevron-down mapping-collapsible-chevron"></i>
+    </div>
+    <div class="mapping-collapsible-body">
+      <div class="mapping-grid">
+        <div class="mapping-item"><span class="map-src-tag">sku</span><span class="map-dest-name">SKU</span><span class="badge badge-green">mapped</span></div>
+        <div class="mapping-item"><span class="map-src-tag">name</span><span class="map-dest-name">ITEM NAME</span><span class="badge badge-green">mapped</span></div>
+        <div class="mapping-item"><span class="map-src-tag">price</span><span class="map-dest-name">PRICE</span><span class="badge badge-green">mapped</span></div>
+        <div class="mapping-item"><span class="map-src-tag">description</span><span class="map-dest-name">DESCRIPTION</span><span class="badge badge-purple">HTML stripped</span></div>
+        <div class="mapping-item full"><span class="map-src-tag">additional_images</span><span class="map-dest-name">IMAGE URL 1–5</span><span class="badge badge-dark">split + prefixed</span></div>
+        <div class="mapping-item full"><span class="map-src-tag">name (keyword rules)</span><span class="map-dest-name">WEIGHT</span><span class="badge badge-amber">21kg by keyword</span></div>
+        <div class="mapping-item full muted"><span class="map-src-tag" style="font-style:italic">other fields</span><span class="map-dest-name">Category, Sub Category</span><span class="badge badge-gray">blank</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Weight rules: now editable, saved to localStorage -->
+  <div class="mapping-collapsible" id="mapcol-weight">
+    <div class="mapping-collapsible-header" onclick="toggleMapping('mapcol-weight')">
+      <span class="mapping-collapsible-title"><i class="ti ti-scale"></i> Weight rules — 21kg keyword logic <span class="mapping-collapsible-count" id="weight-rule-count">22</span></span>
+      <button id="btn-download-weight-rules" onclick="event.stopPropagation();downloadWeightRulesCSV()" style="display:none;background:#E8E5DE;border:1px solid #D0CEC8;border-radius:8px;padding:5px 12px;font-size:11px;font-weight:600;font-family:'Inter',sans-serif;color:#5a5650;cursor:pointer;margin-right:8px;" title="Export weight rules as CSV"><i class="ti ti-download" style="font-size:12px"></i> Export Rules</button>
+      <i class="ti ti-chevron-down mapping-collapsible-chevron"></i>
+    </div>
+    <div class="mapping-collapsible-body">
+
+      <div class="rules-subtitle">Set 21kg if name contains (single keyword)</div>
+      <div class="rules-grid" id="rules-single-grid"></div>
+      <div class="rules-edit-row">
+        <input type="text" id="input-single" placeholder="Add a keyword, e.g. Soundbar">
+        <button onclick="addSingleKeyword()">Add</button>
+      </div>
+
+      <div class="rules-subtitle">Set 21kg if name contains BOTH (pair)</div>
+      <div class="rules-grid" id="rules-pair-grid"></div>
+      <div class="rules-edit-row">
+        <input type="text" id="input-pair-a" placeholder="Keyword A, e.g. Brother" style="flex:1">
+        <input type="text" id="input-pair-b" placeholder="Keyword B, e.g. Printer" style="flex:1">
+        <button onclick="addPairKeyword()">Add pair</button>
+      </div>
+
+      <div class="rules-subtitle">Never set 21kg if name also contains</div>
+      <div class="rules-grid" id="rules-exclude-grid"></div>
+      <div class="rules-edit-row">
+        <input type="text" id="input-exclude" placeholder="Add an exclusion, e.g. Filter">
+        <button onclick="addExcludeKeyword()">Add</button>
+      </div>
+
+      <div class="rules-subtitle">Never set 21kg if name contains BOTH (pair)</div>
+      <div class="rules-grid" id="rules-excludepair-grid"></div>
+      <div class="rules-edit-row">
+        <input type="text" id="input-excludepair-a" placeholder="Keyword A, e.g. Sony" style="flex:1">
+        <input type="text" id="input-excludepair-b" placeholder="Keyword B, e.g. Controller" style="flex:1">
+        <button onclick="addExcludePairKeyword()">Add pair</button>
+      </div>
+
+      <div class="rules-subtitle">Brands completely excluded from export (not just weight)</div>
+      <div class="rules-grid" id="rules-brand-grid"></div>
+
+      <div class="rules-save-note" id="rules-save-note"><i class="ti ti-check"></i> Saved to this browser</div>
+      <button class="rules-reset-btn" onclick="resetRulesToDefault()">Reset to default rules</button>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <div class="step">
+    <div class="step-header">
+      <div class="step-num locked" id="s2-num">1B</div>
+      <div class="step-title locked" id="s2-title">Stock by Location</div>
+      <span class="tooltip-wrap">
+        <span class="tooltip-icon">?</span>
+        <span class="tooltip-box">LS Retail &gt; Inventory Valuation &gt; Filter Totals By: Location Filter &gt; Choose the store &gt; Microsoft Excel Document (data and layout)</span>
+      </span>
+      <span class="step-badge pending" id="s2-badge">Locked</span>
+    </div>
+    <div class="location-note" id="location-note" style="display:none">Upload one or both locations below. Each produces its own separate export.</div>
+
+    <div class="location-grid">
+      <div class="location-col">
+        <div class="location-col-title">Pama Shopping Mall</div>
+        <div id="pama-dropwrap">
+          <div class="drop-zone locked-zone" id="dz-pama">
+            <div class="dz-cloud"><i class="ti ti-lock"></i></div>
+            <div class="dz-title">Complete Step 1 first</div>
+            <div class="dz-sub">Upload Inventory Valuation</div>
+          </div>
+        </div>
+        <div class="loading-block" id="load-pama">
+          <div class="loading-header"><span class="loading-label" id="load-pama-label">Processing…</span><span class="loading-pct" id="load-pama-pct">0%</span></div>
+          <div class="progress-track"><div class="progress-fill" id="load-pama-fill"></div></div>
+          <div class="loading-step" id="load-pama-step"></div>
+        </div>
+      </div>
+
+      <div class="location-col">
+        <div class="location-col-title">The Point Shopping Mall</div>
+        <div id="point-dropwrap">
+          <div class="drop-zone locked-zone" id="dz-point">
+            <div class="dz-cloud"><i class="ti ti-lock"></i></div>
+            <div class="dz-title">Complete Step 1 first</div>
+            <div class="dz-sub">Upload Inventory Valuation</div>
+          </div>
+        </div>
+        <div class="loading-block" id="load-point">
+          <div class="loading-header"><span class="loading-label" id="load-point-label">Processing…</span><span class="loading-pct" id="load-point-pct">0%</span></div>
+          <div class="progress-track"><div class="progress-fill" id="load-point-fill"></div></div>
+          <div class="loading-step" id="load-point-step"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stock Threshold — admin only, shown below the upload boxes after first location completes -->
+  <div class="threshold-row" id="threshold-row" style="display:flex">
+    <div class="threshold-label">
+      <span>Stock Threshold</span>
+      <span class="tooltip-wrap">
+        <span class="tooltip-icon">?</span>
+        <span class="tooltip-box">Products with stock BELOW this value will be excluded from the export. E.g. threshold 4 keeps only products with stock 4 or above. Leave blank to export all.</span>
+      </span>
+    </div>
+    <input type="number" id="threshold-input" class="threshold-input" min="0" value="1" placeholder="No threshold" oninput="saveThreshold()">
+  </div>
+
+  <div class="mapping-collapsible" id="mapcol-2">
+    <div class="mapping-collapsible-header" onclick="toggleMapping('mapcol-2')">
+      <span class="mapping-collapsible-title"><i class="ti ti-arrows-exchange"></i> Column mapping — Pama / The Point Shopping Mall <span class="mapping-collapsible-count">2</span></span>
+      <i class="ti ti-chevron-down mapping-collapsible-chevron"></i>
+    </div>
+    <div class="mapping-collapsible-body">
+      <div class="mapping-grid">
+        <div class="mapping-item"><span class="map-src-tag">Col A — Item No.</span><span class="map-dest-name">SKU (match key)</span><span class="badge badge-blue">match</span></div>
+        <div class="mapping-item"><span class="map-src-tag">Col P — Quantity</span><span class="map-dest-name">Stock Count</span><span class="badge badge-green">mapped</span></div>
+      </div>
+    </div>
+
+  </div>
+
+  <hr class="divider">
+
+  <div class="step">
+    <div class="step-header">
+      <div class="step-num locked" id="s3-num">1C</div>
+      <div class="step-title locked" id="s3-title">Category Import</div>
+      <span class="tooltip-wrap">
+        <span class="tooltip-icon">?</span>
+        <span class="tooltip-box">LS Retail &gt; Configuration Packages &gt; Item Hierarchy &gt; 10000922 &gt; Export to Excel</span>
+      </span>
+      <span class="step-badge pending" id="s3-badge">Locked</span>
+    </div>
+    <div id="s3-dropwrap">
+      <div class="drop-zone locked-zone" id="dz3">
+        <div class="dz-cloud"><i class="ti ti-lock"></i></div>
+        <div class="dz-title">Complete Step 2 first</div>
+        <div class="dz-sub">This does not need to be uploaded always</div>
+      </div>
+    </div>
+    <div class="loading-block" id="load3">
+      <div class="loading-header"><span class="loading-label" id="load3-label">Processing…</span><span class="loading-pct" id="load3-pct">0%</span></div>
+      <div class="progress-track"><div class="progress-fill" id="load3-fill"></div></div>
+      <div class="loading-step" id="load3-step"></div>
+    </div>
+  </div>
+
+  <div class="mapping-collapsible" id="mapcol-3">
+    <div class="mapping-collapsible-header" onclick="toggleMapping('mapcol-3')">
+      <span class="mapping-collapsible-title"><i class="ti ti-arrows-exchange"></i> Column mapping — Category Import <span class="mapping-collapsible-count">2</span></span>
+      <i class="ti ti-chevron-down mapping-collapsible-chevron"></i>
+    </div>
+    <div class="mapping-collapsible-body">
+      <div class="mapping-grid">
+        <div class="mapping-item"><span class="map-src-tag">Col D — SKU (row 4+)</span><span class="map-dest-name">SKU (match key)</span><span class="badge badge-blue">match</span></div>
+        <div class="mapping-item"><span class="map-src-tag">Col B — Sub Category (row 4+)</span><span class="map-dest-name">SUB CATEGORY</span><span class="badge badge-green">title-cased</span></div>
+        <div class="mapping-item full"><span class="map-src-tag" style="font-style:italic">lookup table (143 pairs)</span><span class="map-dest-name">CATEGORY (parent)</span><span class="badge badge-purple">auto-filled</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="results-section">
+    <hr class="divider">
+    <div class="section-label">Results</div>
+
+    <div class="loc-toggle" id="loc-toggle">
+      <button class="loc-toggle-btn active" id="loc-toggle-pama" onclick="setActiveLocationView('pama')">Pama Shopping Mall</button>
+      <button class="loc-toggle-btn" id="loc-toggle-point" onclick="setActiveLocationView('point')">The Point Shopping Mall</button>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-num" id="stat-total">—</div><div class="stat-lbl">Total rows</div></div>
+      <div class="stat-card"><div class="stat-num" id="stat-stock">—</div><div class="stat-lbl">Stock matched</div></div>
+      <div class="stat-card"><div class="stat-num" id="stat-unmatched">—</div><div class="stat-lbl">Not in location</div></div>
+    </div>
+    <div class="stats-row weight-row">
+      <div class="stat-card"><div class="stat-num" id="stat-weighted">—</div><div class="stat-lbl">Set to 21kg</div></div>
+      <div class="stat-card"><div class="stat-num" id="stat-excluded">—</div><div class="stat-lbl">Matched but excluded</div></div>
+    </div>
+    <div class="stats-row weight-row">
+      <div class="stat-card"><div class="stat-num" id="stat-categorized">—</div><div class="stat-lbl">Category matched</div></div>
+      <div class="stat-card"><div class="stat-num" id="stat-uncategorized">—</div><div class="stat-lbl">Unmapped sub category</div></div>
+    </div>
+
+    <div class="section-label">Match inspector</div>
+    <div class="inspector-card">
+      <div class="inspector-tabs">
+        <button class="inspector-tab active" id="tab-search" onclick="showTab('search')">Search SKU</button>
+        <button class="inspector-tab" id="tab-unmatched" onclick="showTab('unmatched')">Not in <span id="tab-unmatched-loc">Pama</span> <span class="tab-count red" id="count-notinpama">0</span></button>
+        <button class="inspector-tab" id="tab-nostock" onclick="showTab('nostock')">Not in Magento <span class="tab-count red" id="count-notinmagento">0</span></button>
+        <button class="inspector-tab" id="tab-weighted" onclick="showTab('weighted')">21kg <span class="tab-count amber" id="count-weighted">0</span></button>
+        <button class="inspector-tab" id="tab-uncategorized" onclick="showTab('uncategorized')">Unmapped Category <span class="tab-count red" id="count-uncategorized">0</span></button>
+      </div>
+      <div class="inspector-body">
+        <div id="panel-search">
+          <div class="search-row">
+            <input class="search-input" id="sku-search" type="text" placeholder="Type a SKU to check…" oninput="searchSKU()">
+          </div>
+          <div id="search-results"><div class="empty-state">Type a SKU above to check its match</div></div>
+        </div>
+        <div id="panel-unmatched" style="display:none">
+          <div class="unmatched-note">These products from your Magento import had <strong>no entry in the <span id="unmatched-loc-name">Pama</span> file</strong> — they may not be stocked there.</div>
+          <div class="unmatched-list" id="nostock-list"></div>
+        </div>
+        <div id="panel-nostock" style="display:none">
+          <div class="panel-header-row">
+            <div class="unmatched-note" style="margin-bottom:0">These SKUs are in the <span id="notinmagento-loc-name">Pama</span> file but were <strong>not found in your Magento import</strong>, sorted by highest stock first.</div>
+            <button class="btn-secondary" onclick="downloadNotInMagentoCSV()" id="btn-export-notinmagento">
+              <i class="ti ti-download"></i> Export
+            </button>
+          </div>
+          <div class="unmatched-list" id="unmatched-list"></div>
+        </div>
+        <div id="panel-weighted" style="display:none">
+          <div class="unmatched-note">These products were set to <strong>21kg</strong> based on a name keyword match.</div>
+          <div class="unmatched-list" id="weighted-list"></div>
+        </div>
+        <div id="panel-uncategorized" style="display:none">
+          <div class="unmatched-note">These products had a Sub Category that <strong>isn't in the parent-category lookup table</strong> yet — both Category and Sub Category were left blank.</div>
+          <div class="unmatched-list" id="uncategorized-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <button class="btn-primary" id="btn-download-pama" onclick="downloadLocationCSV('pama')" style="display:none"><i class="ti ti-download"></i> Pama Shopping Mall Wolt Stock</button>
+      <button class="btn-primary" id="btn-download-point" onclick="downloadLocationCSV('point')" style="display:none"><i class="ti ti-download"></i> The Point Shopping Mall Wolt Stock</button>
+      <button class="btn-ghost" onclick="resetAll()"><i class="ti ti-refresh"></i> Start over</button>
+    </div>
+
+    <div class="section-label">Preview — sorted by stock (highest first)</div>
+    <div class="table-card">
+      <div class="table-scroll">
+        <table><thead><tr id="table-head"></tr></thead><tbody id="table-body"></tbody></table>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  </div><!-- end page-import -->
+
+  <!-- PAGE 2: Wolt Stock Updater -->
+  <div class="page" id="page-wolt">
+  <div class="page-desc">
+    <h2>2 &nbsp; Wolt Stock Updater</h2>
+    <p>Update the stock quantities and prices on your Wolt listing using data from Wolt, LS Retail, and Magento. This process updates the stock quantities from LS Retail while matching them with your latest Wolt stock export.</p>
+    <details>
+      <summary>How to use this page</summary>
+      <div class="details-body">
+        <h3>Step 2a: Wolt Current File — Export the current Wolt listing</h3>
+        <p>In Wolt, navigate to:<br><span class="path">Wolt &gt; Listing Manager &gt; Export to Google Sheets</span><br>Export the following fields only:</p>
+        <ul><li>merchant_sku</li><li>inventory_total</li><li>enabled</li></ul>
+        <h3>Step 2b: Upload Stock Export from LS Retail</h3>
+        <p><span class="path">LS Retail &gt; Inventory Valuation</span><br>Apply the Location Filter, choose the required store, and export as a <strong>Microsoft Excel Document (Data &amp; Layout)</strong>.</p>
+        <h3>Step 2c: Export product prices from Magento (optional)</h3>
+        <p><span class="path">Magento &gt; System &gt; Export &gt; Entity Type &gt; Products</span></p>
+        <h3>Set the Stock Threshold</h3>
+        <p>Select the threshold you want. For example, if you enter <strong>3</strong>, only products with a stock quantity of 3 or more will be marked as <strong>True (Enabled)</strong>.</p>
+      </div>
+    </details>
+  </div>
+  <!-- STEP 4: Wolt Stock Updater — standalone section, independent of Steps 1-3 -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-num" id="s4-num">2</div>
+      <div class="step-title" id="s4-title">Wolt Stock Updater</div>
+      <span class="tooltip-wrap">
+        <span class="tooltip-icon">?</span>
+        <span class="tooltip-box">This will update the stock amount in Wolt. You will match the Wolt stock with the last Wolt Stock update that you were given.</span>
+      </span>
+      <span class="step-badge pending" id="s4-badge">Ready</span>
+    </div>
+
+    <div class="location-grid">
+      <!-- Wolt current file -->
+      <div class="location-col">
+        <div class="location-col-title">
+          Wolt Current File
+          <span class="tooltip-wrap">
+            <span class="tooltip-icon">?</span>
+            <span class="tooltip-box">The Wolt Current File can be exported from Wolt &gt; Listing Manager &gt; Export to Google Sheets &gt; Select: merchant_sku, inventory total, Enabled</span>
+          </span>
+        </div>
+        <div id="wolt-dropwrap">
+          <div class="drop-zone" id="dz-wolt" onclick="document.getElementById('fi-wolt').click()">
+            <div class="dz-cloud"><i class="ti ti-cloud-upload"></i></div>
+            <div class="dz-title">Upload Wolt Export</div>
+            <div class="dz-sub">Drag &amp; Drop<br>Wolt &gt; Export Listing to Google Sheets<br><span style="color:#9a9690;font-size:11px">Select: merchant_sku, inventory total, Enabled</span></div>
+            <input type="file" id="fi-wolt" accept=".xlsx,.xls,.csv">
+          </div>
+        </div>
+        <div class="loading-block" id="load-wolt" style="display:none">
+          <div class="loading-header"><span class="loading-label" id="load-wolt-label">Processing…</span><span class="loading-pct" id="load-wolt-pct">0%</span></div>
+          <div class="progress-track"><div class="progress-fill" id="load-wolt-fill"></div></div>
+          <div class="loading-step" id="load-wolt-step"></div>
+        </div>
+      </div>
+
+      <!-- My stock export -->
+      <div class="location-col">
+        <div class="location-col-title">
+          My Stock Export
+          <span class="tooltip-wrap">
+            <span class="tooltip-icon">?</span>
+            <span class="tooltip-box">LS Retail &gt; Inventory Valuation &gt; Filter Totals By: Location Filter &gt; Choose the store &gt; Microsoft Excel Document (data and layout)</span>
+          </span>
+        </div>
+        <div id="myexport-dropwrap">
+          <div class="drop-zone" id="dz-myexport" onclick="document.getElementById('fi-myexport').click()">
+            <div class="dz-cloud"><i class="ti ti-cloud-upload"></i></div>
+            <div class="dz-title">Upload Stock Export</div>
+            <div class="dz-sub">Drag &amp; Drop<br>Import Inventory Valuation<br><span style="color:#9a9690;font-size:11px">Col A = merchant_sku &nbsp;·&nbsp; Col P = stock quantity</span></div>
+            <input type="file" id="fi-myexport" accept=".xlsx,.xls,.csv">
+          </div>
+        </div>
+        <div class="loading-block" id="load-myexport" style="display:none">
+          <div class="loading-header"><span class="loading-label" id="load-myexport-label">Processing…</span><span class="loading-pct" id="load-myexport-pct">0%</span></div>
+          <div class="progress-track"><div class="progress-fill" id="load-myexport-fill"></div></div>
+          <div class="loading-step" id="load-myexport-step"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Magento Price Checker — optional third upload -->
+    <div style="margin-top:14px">
+      <div class="location-col-title" style="margin-bottom:8px">
+        Magento Price Checker
+        <span class="tooltip-wrap">
+          <span class="tooltip-icon">?</span>
+          <span class="tooltip-box">Optional. Upload your Magento export to update prices. Col A = merchant_sku, Col N = price. If not uploaded, the price from the Wolt Current File is kept as-is.</span>
+        </span>
+        <span style="font-size:11px;font-weight:400;color:#9a9690;margin-left:6px">Optional</span>
+      </div>
+      <div id="magentoprice-dropwrap">
+        <div class="drop-zone" id="dz-magentoprice" onclick="document.getElementById('fi-magentoprice').click()" style="padding:14px 20px">
+          <div class="dz-cloud"><i class="ti ti-cloud-upload"></i></div>
+          <div class="dz-title">Upload Magento Export</div>
+          <div class="dz-sub">Drag &amp; Drop<br>Col A = merchant_sku &nbsp;·&nbsp; Col N = price &nbsp;·&nbsp; <em>Optional</em></div>
+          <input type="file" id="fi-magentoprice" accept=".xlsx,.xls,.csv">
+        </div>
+      </div>
+      <div class="loading-block" id="load-magentoprice" style="display:none">
+        <div class="loading-header"><span class="loading-label" id="load-magentoprice-label">Processing…</span><span class="loading-pct" id="load-magentoprice-pct">0%</span></div>
+        <div class="progress-track"><div class="progress-fill" id="load-magentoprice-fill"></div></div>
+        <div class="loading-step" id="load-magentoprice-step"></div>
+      </div>
+    </div>
+
+    <!-- Threshold for Wolt updater -->
+    <div class="threshold-row" id="wolt-threshold-row" style="margin-top:12px">
+      <div class="threshold-label">
+        <span>Stock Threshold</span>
+        <span class="tooltip-wrap">
+          <span class="tooltip-icon">?</span>
+          <span class="tooltip-box">Products with stock equal to or above this value will be marked TRUE (enabled). Products below will be marked FALSE.</span>
+        </span>
+      </div>
+      <input type="number" id="wolt-threshold-input" class="threshold-input" min="0" value="1" placeholder="No threshold" oninput="saveWoltThreshold()">
+    </div>
+
+    <!-- Download button — shown after required files processed -->
+    <div id="wolt-result-row" style="display:none;margin-top:12px">
+      <div class="toolbar" style="margin-bottom:0">
+        <button class="btn-primary" onclick="downloadWoltCSV()"><i class="ti ti-download"></i> Wolt Updated Stock Amount</button>
+        <span id="wolt-match-info" style="font-size:12px;color:#7a7670;margin-left:8px"></span>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  </div><!-- end page-wolt -->
+
+  <!-- PAGE 3: Check Stock -->
+  <div class="page" id="page-check">
+  <div class="page-desc">
+    <h2>3 &nbsp; Check Stock</h2>
+    <p>Find products that are in your stock export but are not yet listed on Wolt. This process compares your stock export with the list of Merchant SKUs currently available on Wolt and displays only the products that are not listed.</p>
+    <details>
+      <summary>How to use this page</summary>
+      <div class="details-body">
+        <h3>Step 3a: Upload Wolt Stock Export</h3>
+        <p>Upload the files generated in the <strong>1A Product Import</strong> process:</p>
+        <ul><li>Magento Product Export</li><li>LS Retail Inventory Valuation</li></ul>
+        <p><em>Note: Do not import the category file.</em></p>
+        <h3>Step 3b: Upload Merchant SKU List — Export the Wolt Merchant SKU list</h3>
+        <p>In Wolt, navigate to:<br><span class="path">Wolt &gt; Listing Manager &gt; Export</span><br>Export <strong>Merchant SKU only</strong>.</p>
+      </div>
+    </details>
+  </div>
+  <!-- STEP 5: Check Stock -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-num" id="s5-num">3</div>
+      <div class="step-title" id="s5-title">Check Stock</div>
+      <span class="tooltip-wrap">
+        <span class="tooltip-icon">?</span>
+        <span class="tooltip-box">Compares your Wolt Stock export against your Wolt merchant SKU list and shows only the products that are not yet listed on Wolt.</span>
+      </span>
+      <span class="step-badge pending" id="s5-badge">Ready</span>
+    </div>
+
+    <div class="location-grid">
+      <div class="location-col">
+        <div class="location-col-title">
+          Import Wolt Stock
+          <span class="tooltip-wrap">
+            <span class="tooltip-icon">?</span>
+            <span class="tooltip-box">Do Step 1 process. (Magento Export + Inventory Valuation)</span>
+          </span>
+        </div>
+        <div id="checkstock1-dropwrap">
+          <div class="drop-zone" id="dz-checkstock1" onclick="document.getElementById('fi-checkstock1').click()">
+            <div class="dz-cloud"><i class="ti ti-cloud-upload"></i></div>
+            <div class="dz-title">Upload Wolt Stock Export</div>
+            <div class="dz-sub">Drag &amp; Drop<br>Col A = merchant_sku · all columns kept in output</div>
+            <input type="file" id="fi-checkstock1" accept=".xlsx,.xls,.csv">
+          </div>
+        </div>
+        <div class="loading-block" id="load-checkstock1" style="display:none">
+          <div class="loading-header"><span class="loading-label" id="load-checkstock1-label">Processing…</span><span class="loading-pct" id="load-checkstock1-pct">0%</span></div>
+          <div class="progress-track"><div class="progress-fill" id="load-checkstock1-fill"></div></div>
+          <div class="loading-step" id="load-checkstock1-step"></div>
+        </div>
+      </div>
+
+      <div class="location-col">
+        <div class="location-col-title">
+          Import Wolt Merchant SKU
+          <span class="tooltip-wrap">
+            <span class="tooltip-icon">?</span>
+            <span class="tooltip-box">Export Merchant SKUs from Wolt.</span>
+          </span>
+        </div>
+        <div id="checkstock2-dropwrap">
+          <div class="drop-zone" id="dz-checkstock2" onclick="document.getElementById('fi-checkstock2').click()">
+            <div class="dz-cloud"><i class="ti ti-cloud-upload"></i></div>
+            <div class="dz-title">Upload Merchant SKU List</div>
+            <div class="dz-sub">Drag &amp; Drop<br>Col A = merchant_sku</div>
+            <input type="file" id="fi-checkstock2" accept=".xlsx,.xls,.csv">
+          </div>
+        </div>
+        <div class="loading-block" id="load-checkstock2" style="display:none">
+          <div class="loading-header"><span class="loading-label" id="load-checkstock2-label">Processing…</span><span class="loading-pct" id="load-checkstock2-pct">0%</span></div>
+          <div class="progress-track"><div class="progress-fill" id="load-checkstock2-fill"></div></div>
+          <div class="loading-step" id="load-checkstock2-step"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="checkstock-result-row" style="display:none;margin-top:12px">
+      <div class="toolbar" style="margin-bottom:0">
+        <button class="btn-primary" onclick="downloadCheckStockCSV()"><i class="ti ti-download"></i> Download Missing SKUs</button>
+        <span id="checkstock-match-info" style="font-size:12px;color:#7a7670;margin-left:8px"></span>
+      </div>
+    </div>
+  </div>
+
+
+  </div><!-- end page-check -->
+  <div class="app-footer">Damian Meilak Gouder</div>
+</div>
+</div>
+
+<script>
+// ───────────────────────────────────────────────
+// AUTHENTICATION
+// Passwords are NOT stored in plain text. Each entry below is a
+// SHA-256 hash of "username:password" (lowercased username).
+// Viewing this code does not reveal the actual passwords.
+// ───────────────────────────────────────────────
+const AUTH_USERS = {
+  "dmeilak":    { hash: "5a21f63471bb58837a0ebb7ae36a84f0f94099cc7549f86ca41e845c2ee45d62", role: "admin" },
+  "intercomp1": { hash: "768250a208cdea4bbed22ac7e6ee3920603a1284f0be364d35e9366456d426e8", role: "user" },
+  "intercomp2": { hash: "2a9920bd83bc27d815476d5a290f5bf51a8ccaf74e486b72037284ac86bf8718", role: "user" },
+  "intercomp3": { hash: "b565f1486725a3d89bbf233827d16b5d6f8267608a4414d51111d310cebb17d1", role: "user" },
+  "intercomp4": { hash: "cb010f41982181e2ab6c4085cdb3f8172c2f91af53ea6643639ea3e2648ab9e2", role: "user" }
+};
+const SESSION_KEY = 'csv_extractor_session_v1';
+const REMEMBER_DURATION_MS = 60 * 24 * 60 * 60 * 1000; // 2 months
+
+async function sha256(message) {
+  const enc = new TextEncoder().encode(message);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', enc);
+  return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+function toggleLoginPasswordVisibility() {
+  const pInput = document.getElementById('login-password');
+  const icon = document.getElementById('login-eye-icon');
+  const btn = document.getElementById('login-eye-btn');
+  const showing = pInput.type === 'text';
+  pInput.type = showing ? 'password' : 'text';
+  icon.className = showing ? 'ti ti-eye' : 'ti ti-eye-off';
+  btn.setAttribute('aria-label', showing ? 'Show password' : 'Hide password');
+}
+
+// "Remember me" only makes sense — and is only offered — for the admin account.
+function onLoginUsernameChange() {
+  const username = document.getElementById('login-username').value.trim().toLowerCase();
+  const row = document.getElementById('login-remember-row');
+  const isAdmin = AUTH_USERS[username] && AUTH_USERS[username].role === 'admin';
+  row.style.display = isAdmin ? 'flex' : 'none';
+  if (!isAdmin) document.getElementById('login-remember-checkbox').checked = false;
+}
+
+async function attemptLogin() {
+  const uInput = document.getElementById('login-username');
+  const pInput = document.getElementById('login-password');
+  const errorEl = document.getElementById('login-error');
+  const rememberChecked = document.getElementById('login-remember-checkbox').checked;
+  const username = uInput.value.trim().toLowerCase();
+  const password = pInput.value;
+
+  if (!username || !password) {
+    errorEl.textContent = 'Please enter both username and password';
+    errorEl.style.display = 'block';
+    return;
+  }
+
+  const record = AUTH_USERS[username];
+  if (!record) {
+    errorEl.textContent = 'Incorrect username or password';
+    errorEl.style.display = 'block';
+    return;
+  }
+
+  const computedHash = await sha256(username + ':' + password);
+  if (computedHash !== record.hash) {
+    errorEl.textContent = 'Incorrect username or password';
+    errorEl.style.display = 'block';
+    return;
+  }
+
+  errorEl.style.display = 'none';
+  const session = { username, role: record.role };
+
+  // Only the admin account can be "remembered" — and only when the box is checked.
+  // Remembered sessions go in localStorage with a 2-month expiry; everyone else
+  // (and admin without the box checked) uses sessionStorage, cleared on tab close.
+  if (record.role === 'admin' && rememberChecked) {
+    const remembered = { ...session, expiresAt: Date.now() + REMEMBER_DURATION_MS };
+    try {
+      localStorage.setItem(SESSION_KEY, JSON.stringify(remembered));
+      sessionStorage.removeItem(SESSION_KEY);
+    } catch(e) {}
+  } else {
+    try {
+      sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
+      localStorage.removeItem(SESSION_KEY);
+    } catch(e) {}
+  }
+
+  showApp(session);
+}
+
+function showApp(session) {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('main-app').style.display = 'block';
+  showPage('home');
+  document.getElementById('current-username').textContent = session.username;
+  const badge = document.getElementById('current-role-badge');
+  badge.textContent = session.role === 'admin' ? 'Admin' : 'User';
+  badge.className = 'role-badge ' + session.role;
+
+  // All users always use DEFAULT_RULES for processing — this ensures identical
+  // results across all browsers/sessions. Admin can edit rules in the UI and
+  // export the updated HTML to redeploy with new defaults.
+  RULES = JSON.parse(JSON.stringify(DEFAULT_RULES));
+
+  // Normal users do not see column mapping or weight rules panels
+  const adminOnlyIds = ['mapcol-1', 'mapcol-weight', 'mapcol-2', 'mapcol-3'];
+  adminOnlyIds.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = session.role === 'admin' ? '' : 'none';
+  });
+
+  // Threshold row visible to all users — restore saved value if present, else default 1
+  const savedThresh = localStorage.getItem('csv_extractor_threshold');
+  document.getElementById('threshold-input').value = savedThresh !== null ? savedThresh : '1';
+
+  // Weight rules download button is admin-only
+  const weightBtn = document.getElementById('btn-download-weight-rules');
+  if (weightBtn) weightBtn.style.display = session.role === 'admin' ? 'inline-flex' : 'none';
+
+  // Render the rule count badge for all users so it always reflects current DEFAULT_RULES.
+  // RULES stays as DEFAULT_RULES for processing — admin's localStorage edits are only
+  // loaded when they actively open the rules editor, not at login time.
+  renderRulesUI();
+}
+
+function logout() {
+  try {
+    sessionStorage.removeItem(SESSION_KEY);
+    localStorage.removeItem(SESSION_KEY);
+  } catch(e) {}
+  document.getElementById('main-app').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('login-username').value = '';
+  document.getElementById('login-password').value = '';
+  document.getElementById('login-error').style.display = 'none';
+  document.getElementById('login-remember-row').style.display = 'none';
+  document.getElementById('login-remember-checkbox').checked = false;
+  // Reset admin-only elements
+  const weightBtnLogout = document.getElementById('btn-download-weight-rules');
+  if (weightBtnLogout) weightBtnLogout.style.display = 'none';
+}
+
+// Restore session on page load. Checks sessionStorage first (per-tab, cleared on
+// close), then localStorage (only ever set for a remembered admin session, and
+// only honored if it hasn't passed its 2-month expiry).
+(function restoreSession() {
+  try {
+    const sessionRaw = sessionStorage.getItem(SESSION_KEY);
+    if (sessionRaw) {
+      const session = JSON.parse(sessionRaw);
+      if (session && AUTH_USERS[session.username] && AUTH_USERS[session.username].role === session.role) {
+        showApp(session);
+        return;
+      }
+    }
+
+    const localRaw = localStorage.getItem(SESSION_KEY);
+    if (localRaw) {
+      const remembered = JSON.parse(localRaw);
+      const valid = remembered && AUTH_USERS[remembered.username]
+        && AUTH_USERS[remembered.username].role === remembered.role
+        && remembered.role === 'admin'
+        && remembered.expiresAt && Date.now() < remembered.expiresAt;
+      if (valid) {
+        showApp({ username: remembered.username, role: remembered.role });
+        return;
+      } else {
+        localStorage.removeItem(SESSION_KEY);
+      }
+    }
+  } catch(e) {}
+})();
+
+const BASE_URL = 'https://intercomp.com.mt/media/catalog/product/';
+const MAX_IMAGES = 5;
+const OUTPUT_FIELDS = ["SKU","ITEM NAME","DESCRIPTION","PRICE","IMAGE URL 1","IMAGE URL 2","IMAGE URL 3","IMAGE URL 4","IMAGE URL 5","Stock Count","Weight","CATEGORY","SUB CATEGORY","enabled"];
+
+// Maps internal field names to the export column header names
+const EXPORT_HEADERS = {
+  "SKU":           "merchant_sku",
+  "ITEM NAME":     "name",
+  "DESCRIPTION":   "description",
+  "PRICE":         "price",
+  "IMAGE URL 1":   "IMAGE URL 1",
+  "IMAGE URL 2":   "IMAGE URL 2",
+  "IMAGE URL 3":   "IMAGE URL 3",
+  "IMAGE URL 4":   "IMAGE URL 4",
+  "IMAGE URL 5":   "IMAGE URL 5",
+  "Stock Count":   "number_of_units",
+  "Weight":        "Weight",
+  "CATEGORY":      "CATEGORY",
+  "SUB CATEGORY":  "SUB CATEGORY",
+  "enabled":       "enabled"
+};
+// Internal-only field names holding each location's stock — never written directly
+// to the export; downloadCSV swaps the right one into the "Stock Count" column.
+const STOCK_FIELD_PAMA = '__stock_pama__';
+const STOCK_FIELD_POINT = '__stock_point__';
+const ALLOWED = ["sku","name","price","description","additional_images"];
+const SIMPLE_MAP = {"sku":"SKU","name":"ITEM NAME","price":"PRICE"};
+const NOT_MATCHED = '__NO_MATCH__';
+const STORAGE_KEY = 'csv_extractor_weight_rules_v1';
+
+// ── Default rules (used the first time, or after Reset) ──
+const DEFAULT_RULES = {
+  single: ["monitor","lexmark","shark","philips","lg","gaming desk","desk","gaming chair","chair","computer case","cordless vacuum cleaner","robot vacuum cleaner","vacuum cleaner","microsoft surface","microsoft surface pro","soundbar","aoi","gaming pc","tv","acer aspire","lenovo thinkbook","lg tv","moza","ninja crispi","ninja creami","lenovo loq","simagic","ninja swirl","sony playstation 5","sony playstation 4","steering wheel","acquascooter","dell pro","air fryer","airfryer","asus vivobook","next level gaming","dell vostro","aoi master","aoi elite","aoi legend","aoi one","aoi pro","ninja slushi","ninja 3-in-1","gaming monitor","apc back ups","apc back-ups","dell latitude","apple macbook","apple imac","apple macbook air","apple macbook pro","smoothie maker","apc smart-ups","apc smart ups"],
+  pairs: [["brother","printer"],["lexmark","laser"],["brother","label"],["ninja","icecream"],["ninja","drink maker"]],
+  exclude: [
+    "filter","toner","ink tank","cartridge",
+    "fire tv stick","label printer","earbuds","rgb fan",
+    "monitor cleaning kit","universal hub","cable organizer","baby monitor",
+    "desk pad","surface pen","party jamboree","extension cable",
+    "square labels","address labels","mousepad","gaming headset","headset",
+    "remote control","apple tv","toaster","monitor backlight",
+    "travel hub","gaming mouse","wrist rest","gaming mat","wireless mouse","mouse",
+    "blackview shark","marshall monitor"
+  ],
+  // "Never set 21kg if BOTH appear" — distinct from single-word exclude:
+  // these only block when the pair is present together, not on their own.
+  excludePairs: [
+    ["sony","controller"],
+    ["sony","wireless controller"],
+    ["lexmark","toner"],
+    ["lextmark","tnr"],
+    ["shark","tnr"],
+    ["brother","tnr"],
+    ["desk","fan"]
+  ]
+};
+
+// Brands that must be completely excluded from the export (not just weight)
+const BRAND_EXCLUSIONS = ["gree","artel"];
+
+// TV brands used as the signal that a product IS a TV (so a 43" monitor isn't
+// accidentally caught by this rule — only these brand names count).
+const TV_BRANDS_FOR_SIZE_CHECK = ["lg","philips","samsung","metz"];
+
+// Detects a screen size mentioned in the name (e.g. 43", 43 inch, 43in) and
+// returns the number, or null if no size pattern is found.
+function extractScreenSizeInches(name) {
+  if (!name) return null;
+  const match = name.match(/(\d{2,3})\s*(?:"|''|inch(?:es)?|in\b)/i);
+  if (!match) return null;
+  const size = parseInt(match[1], 10);
+  return Number.isFinite(size) ? size : null;
+}
+
+// True if the name contains one of the TV brands AND a screen size of 43" or larger.
+function isLargeBrandedTV(name) {
+  if (!name) return false;
+  const n = name.toLowerCase();
+  const hasTVBrand = TV_BRANDS_FOR_SIZE_CHECK.some(brand => n.includes(brand));
+  if (!hasTVBrand) return false;
+  const size = extractScreenSizeInches(name);
+  return size !== null && size >= 43;
+}
+
+// Sub Category values to silently ignore — left blank like normal, but NOT counted
+// or listed in the "Unmapped Category" tab since this is an intentional skip, not a
+// genuine data gap. Matched using the same normalized (space/case-insensitive) key.
+function normalizeKeyEarly(s) { return String(s).toLowerCase().replace(/[^a-z0-9&]/g, ''); }
+const SUBCATEGORY_SKIP_SILENTLY = ["air conditioners acs"].map(normalizeKeyEarly);
+
+// Sub Category (lowercase) -> Parent Category (lowercase). Built from Category_Rule.xlsx,
+// excluding rows where either side contains "SHOP" or "-1" (per request), with the
+// TABLETS-1 sub-items remapped to "Tablets" as confirmed.
+const CATEGORY_MAP = {
+  "acquascooters":"water sports & equipment",
+  "action cameras":"cameras",
+  "air fryers":"kitchen",
+  "air purifiers":"home",
+  "airconditioners":"cooling & heating",
+  "all in one pcs":"desktops pcs",
+  "android tablets":"tablets",
+  "tablets-1":"tablets",
+  "androidsmartphones":"smartphones",
+  "apple ipads":"tablets",
+  "apple mac":"desktops pcs",
+  "apple macbook":"laptops",
+  "appleiphone":"smartphones",
+  "arcade machines":"gaming",
+  "bags & cases":"laptop accesories",
+  "bathroom scales":"personal care",
+  "batteries & power supplies":"laptop accesories",
+  "blenders":"kitchen",
+  "business laptops":"laptops",
+  "cables & adaptors":"tv accesories",
+  "cables & chargers":"smartphone accessories",
+  "camera accesories":"photography & accessories",
+  "camera accessories":"photography & accessories",
+  "camera lenses":"camera accesories",
+  "camera printers":"camera accesories",
+  "cameras":"photography & accessories",
+  "card printers":"printers, shredders & supply",
+  "card readers":"desktops pcs",
+  "cleaning":"home",
+  "cleaning accessories":"cleaning",
+  "cleaning tools & kits":"desktops pcs",
+  "cleaning tools & kits-1":"cleaning",
+  "laptop accesories":"laptop accesories",
+  "components":"desktops pcs",
+  "cooling & heating":"home",
+  "corded phones":"corded/cordless phones",
+  "corded/cordless phones":"smartphones&mobile",
+  "cordless phones":"corded/cordless phones",
+  "digital cameras":"cameras",
+  "docking stations":"laptop accesories",
+  "drawing tablets":"tablets",
+  "drones":"cameras",
+  "earbuds/earphones":"headphones",
+  "external hard disks":"storage",
+  "fans":"cooling & heating",
+  "flight simulation":"simulation",
+  "gaming chairs":"gaming",
+  "gaming consoles":"gaming",
+  "gaming controllers":"gaming peripherals",
+  "gaming desks":"gaming",
+  "gaming headphones":"gaming peripherals",
+  "gaming headsets":"headphones",
+  "gaming keyboards":"gaming peripherals",
+  "gaming laptops":"laptops",
+  "gaming mice":"gaming peripherals",
+  "gaming microphones":"gaming",
+  "gaming monitors":"gaming",
+  "gaming pc":"gaming",
+  "gaming mats":"gaming peripherals",
+  "gaming pcs":"desktops pcs",
+  "gaming peripherals":"gaming",
+  "gaming speakers":"gaming peripherals",
+  "gaming steering wheels":"simulation",
+  "hairdryer":"personal care",
+  "headphones":"sound & audio",
+  "headset stands":"gaming peripherals",
+  "headsets":"headphones",
+  "heaters":"cooling & heating",
+  "home printers":"printers, shredders & supply",
+  "homelaptops":"laptops",
+  "ice cream maker":"kitchen",
+  "ink and cartridges":"printers, shredders & supply",
+  "inkjet printers":"printers, shredders & supply",
+  "instant cameras":"cameras",
+  "keyboards":"desktops pcs",
+  "kids cameras":"cameras",
+  "kids smartwatches":"smartwatch & fitness trackers",
+  "kids tablets":"tablets",
+  "kindle":"tablets",
+  "kitchen":"home",
+  "label printers":"printers, shredders & supply",
+  "laptop accesories":"laptop accesories",
+  "laser printers":"printers, shredders & supply",
+  "lg tvs":"tvs",
+  "media streamers":"tv accesories",
+  "metz tvs":"tvs",
+  "mice":"desktops pcs",
+  "mobile phones":"smartphones&mobile",
+  "monitors":"desktops pcs",
+  "mouse mats":"gaming peripherals",
+  "network adaptors":"networking",
+  "network cables":"networking",
+  "office printers":"printers, shredders & supply",
+  "other kitchen appliances":"kitchen",
+  "pc cases":"desktops pcs",
+  "pc speakers":"speakers",
+  "personal care":"home",
+  "philips tvs":"tvs",
+  "photo frames":"cameras",
+  "portable speakers":"speakers",
+  "powerbanks":"smartphone accessories",
+  "printer tapes":"printers, shredders & supply",
+  "printer toners":"printers, shredders & supply",
+  "printer ink and cartridges":"printers, shredders & supply",
+  "uninterrupted-power-supplies":"uninterrupted power supplies",
+  "uninterrupted power supplies":"uninterrupted power supplies",
+  "projectors":"televisions (tvs)",
+  "racing simulation":"simulation",
+  "robot vacuum cleaners":"cleaning",
+  "routers & access points":"networking",
+  "rugged smartphones":"smartphones",
+  "samsung tvs":"tvs",
+  "scanners":"printers, shredders & supply",
+  "screen protectors":"smartphone accessories",
+  "sd cards":"storage",
+  "shredders":"printers, shredders & supply",
+  "simulation":"gaming",
+  "small form factor pcs":"desktops pcs",
+  "smart cameras":"cameras",
+  "smart home":"home",
+  "smart speakers":"speakers",
+  "smart trackers":"smartphones&mobile",
+  "smartphone accessories":"smartphones&mobile",
+  "smartphonecases":"smartphone accessories",
+  "smartphones":"smartphones&mobile",
+  "smartwatch accesories":"smartwatch & fitness trackers",
+  "smartwatch chargers":"smartwatch & fitness trackers",
+  "smartwatch straps":"smartwatch & fitness trackers",
+  "smartwatches":"smartwatch & fitness trackers",
+  "software":"laptops",
+  "soundbars":"soundbars",
+  "soundbars-1":"soundbars",
+  "speakers":"sound & audio",
+  "stands & coolers":"laptop accesories",
+  "stands & holders":"smartphone accessories",
+  "steamers":"home",
+  "storage":"camera accesories",
+  "supplies":"printers, shredders & supply",
+  "surface laptops":"laptops",
+  "microsoft surface laptops":"laptops",
+  "switches":"networking",
+  "tablet accessories":"tablets",
+  "tablet cases":"tablet accessories",
+  "toothbrushes":"personal care",
+  "tv accesories":"televisions (tvs)",
+  "tv mounts":"tv accesories",
+  "tv remotes":"tv accesories",
+  "tvs":"televisions (tvs)",
+  "usb sticks":"camera accesories",
+  "vacuum cleaners":"cleaning",
+  "vr headsets":"gaming peripherals",
+  "webcams":"cameras",
+  "wireless microphones":"sound & audio"
+};
+
+// Self-mapping: every distinct Parent Category also maps to itself, so a product
+// tagged with just the broad term (e.g. Sub Category = "LAPTOPS") still resolves —
+// Category: Laptops, Sub Category: Laptops. Confirmed by Damian for all parent terms.
+const PARENT_SELF_MAP = {};
+Object.values(CATEGORY_MAP).forEach(parent => {
+  if (!(parent in CATEGORY_MAP)) PARENT_SELF_MAP[parent] = parent;
+});
+Object.assign(CATEGORY_MAP, PARENT_SELF_MAP);
+
+// Strips ALL whitespace, punctuation, and case so that "SMARTPHONE CASES",
+// "smartphonecases", and "Smartphone-Cases" all become the same key.
+function normalizeKey(s) {
+  if (!s) return '';
+  return String(s).toLowerCase().replace(/[^a-z0-9&]/g, '');
+}
+
+// Pre-build a normalized version of CATEGORY_MAP so lookups during processing
+// are fast and tolerant of spacing/casing/punctuation differences in the source file.
+const NORMALIZED_CATEGORY_MAP = {};
+Object.entries(CATEGORY_MAP).forEach(([sub, parent]) => {
+  NORMALIZED_CATEGORY_MAP[normalizeKey(sub)] = parent;
+});
+
+
+// ── Load rules from localStorage, falling back to defaults ──
+function loadRules() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && Array.isArray(parsed.single) && Array.isArray(parsed.pairs) && Array.isArray(parsed.exclude)) {
+        // Older saved rules (from before excludePairs existed) won't have this key —
+        // backfill it from the current defaults rather than losing the new rules.
+        if (!Array.isArray(parsed.excludePairs)) {
+          parsed.excludePairs = JSON.parse(JSON.stringify(DEFAULT_RULES.excludePairs));
+        }
+        return parsed;
+      }
+    }
+  } catch (e) { console.warn('Could not load saved rules, using defaults', e); }
+  return JSON.parse(JSON.stringify(DEFAULT_RULES));
+}
+
+function saveRules() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(RULES));
+    // Also update DEFAULT_RULES in memory so the current session uses the new rules.
+    // When the admin is happy with the rules, they redeploy the HTML file which has
+    // the updated DEFAULT_RULES baked in for all users on all browsers/sessions.
+    Object.assign(DEFAULT_RULES, JSON.parse(JSON.stringify(RULES)));
+    const note = document.getElementById('rules-save-note');
+    note.style.display = 'block';
+    setTimeout(() => { note.style.display = 'none'; }, 2000);
+  } catch (e) { console.warn('Could not save rules', e); }
+  renderRulesUI();
+}
+
+let RULES = loadRules();
+
+function renderRulesUI() {
+  document.getElementById('weight-rule-count').textContent =
+    RULES.single.length + RULES.pairs.length + RULES.exclude.length + (RULES.excludePairs || []).length;
+
+  const singleGrid = document.getElementById('rules-single-grid');
+  singleGrid.innerHTML = RULES.single.map((kw, i) =>
+    `<span class="rule-chip">${escapeHtml(kw)}<span class="chip-remove" onclick="removeSingle(${i})">×</span></span>`
+  ).join('') || '<span class="empty-state" style="padding:4px 0">No keywords yet</span>';
+
+  const pairGrid = document.getElementById('rules-pair-grid');
+  pairGrid.innerHTML = RULES.pairs.map((pair, i) =>
+    `<span class="rule-chip and">${escapeHtml(pair[0])} + ${escapeHtml(pair[1])}<span class="chip-remove" onclick="removePair(${i})">×</span></span>`
+  ).join('') || '<span class="empty-state" style="padding:4px 0">No pairs yet</span>';
+
+  const excludeGrid = document.getElementById('rules-exclude-grid');
+  excludeGrid.innerHTML = RULES.exclude.map((kw, i) =>
+    `<span class="rule-chip exclude">${escapeHtml(kw)}<span class="chip-remove" onclick="removeExclude(${i})">×</span></span>`
+  ).join('') || '<span class="empty-state" style="padding:4px 0">No exclusions yet</span>';
+
+  const excludePairGrid = document.getElementById('rules-excludepair-grid');
+  excludePairGrid.innerHTML = (RULES.excludePairs || []).map((pair, i) =>
+    `<span class="rule-chip exclude">${escapeHtml(pair[0])} + ${escapeHtml(pair[1])}<span class="chip-remove" onclick="removeExcludePair(${i})">×</span></span>`
+  ).join('') || '<span class="empty-state" style="padding:4px 0">No pair exclusions yet</span>';
+
+  const brandGrid = document.getElementById('rules-brand-grid');
+  brandGrid.innerHTML = BRAND_EXCLUSIONS.map(b =>
+    `<span class="rule-chip brand-exclude">${escapeHtml(b.toUpperCase())}</span>`
+  ).join('') || '<span class="empty-state" style="padding:4px 0">No brand exclusions</span>';
+}
+
+function escapeHtml(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+function addSingleKeyword() {
+  const input = document.getElementById('input-single');
+  const val = input.value.trim().toLowerCase();
+  if (!val) return;
+  if (!RULES.single.includes(val)) RULES.single.push(val);
+  input.value = '';
+  saveRules();
+}
+function removeSingle(i) { RULES.single.splice(i, 1); saveRules(); }
+
+function addPairKeyword() {
+  const a = document.getElementById('input-pair-a');
+  const b = document.getElementById('input-pair-b');
+  const va = a.value.trim().toLowerCase(), vb = b.value.trim().toLowerCase();
+  if (!va || !vb) return;
+  RULES.pairs.push([va, vb]);
+  a.value = ''; b.value = '';
+  saveRules();
+}
+function removePair(i) { RULES.pairs.splice(i, 1); saveRules(); }
+
+function addExcludePairKeyword() {
+  const a = document.getElementById('input-excludepair-a');
+  const b = document.getElementById('input-excludepair-b');
+  const va = a.value.trim().toLowerCase(), vb = b.value.trim().toLowerCase();
+  if (!va || !vb) return;
+  if (!RULES.excludePairs) RULES.excludePairs = [];
+  RULES.excludePairs.push([va, vb]);
+  a.value = ''; b.value = '';
+  saveRules();
+}
+function removeExcludePair(i) { RULES.excludePairs.splice(i, 1); saveRules(); }
+
+function addExcludeKeyword() {
+  const input = document.getElementById('input-exclude');
+  const val = input.value.trim().toLowerCase();
+  if (!val) return;
+  if (!RULES.exclude.includes(val)) RULES.exclude.push(val);
+  input.value = '';
+  saveRules();
+}
+function removeExclude(i) { RULES.exclude.splice(i, 1); saveRules(); }
+
+function resetRulesToDefault() {
+  if (!confirm('Reset all weight rules back to the original defaults? This cannot be undone.')) return;
+  RULES = JSON.parse(JSON.stringify(DEFAULT_RULES));
+  saveRules();
+}
+
+// Escapes regex special characters in a keyword before building a boundary pattern.
+function escapeRegex(s) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+// Whole-word/phrase match: "shark" matches "Shark Vacuum" but NOT "Sharkoon".
+// "lg" matches "LG TV" but NOT inside "blog" or "lgentry". Works for multi-word
+// phrases too ("gaming desk" requires that exact phrase, not just both words anywhere).
+function containsWholeWord(haystackLower, keywordLower) {
+  if (!keywordLower) return false;
+  const pattern = new RegExp('(?:^|[^a-z0-9])' + escapeRegex(keywordLower) + '(?:$|[^a-z0-9])', 'i');
+  return pattern.test(haystackLower);
+}
+
+function determineWeight(name) {
+  if (!name) return { weight: '', reason: null, excluded: false };
+  const n = name.toLowerCase();
+  const hasExclusion = RULES.exclude.some(kw => containsWholeWord(n, kw));
+  const hasExcludePair = (RULES.excludePairs || []).some(([a, b]) => containsWholeWord(n, a) && containsWholeWord(n, b));
+  let matchedRule = null;
+  for (const kw of RULES.single) {
+    if (containsWholeWord(n, kw)) { matchedRule = kw; break; }
+  }
+  if (!matchedRule) {
+    for (const [a, b] of RULES.pairs) {
+      if (containsWholeWord(n, a) && containsWholeWord(n, b)) { matchedRule = `${a} + ${b}`; break; }
+    }
+  }
+  if (matchedRule && (hasExclusion || hasExcludePair)) return { weight: '', reason: matchedRule, excluded: true };
+  if (matchedRule) return { weight: '21', reason: matchedRule, excluded: false };
+  return { weight: '', reason: null, excluded: false };
+}
+
+let extractedRows = [], weightedRows = [], excludedRows = [], step1Done = false;
+
+// Per-location state — each location (pama / point) tracks its own matched
+// SKU->qty map, its list of "in their file but not in Magento" entries, and
+// whether it has completed at least once. Two independent imports, two
+// independent exports — neither affects the other.
+const LOCATIONS = {
+  pama:  { label: 'Pama Shopping Mall',     stockField: STOCK_FIELD_PAMA,  stockMap: {}, unmatched: [], done: false, fileName: '' },
+  point: { label: 'The Point Shopping Mall', stockField: STOCK_FIELD_POINT, stockMap: {}, unmatched: [], done: false, fileName: '' }
+};
+
+function toggleMapping(id) {
+  document.getElementById(id).classList.toggle('open');
+  // When admin opens the weight rules panel, load their saved rules into RULES
+  // for editing. This keeps RULES as DEFAULT_RULES for processing until the
+  // admin explicitly opens the editor.
+  if (id === 'mapcol-weight' && document.getElementById(id).classList.contains('open')) {
+    const savedRules = loadRules();
+    Object.assign(RULES, savedRules);
+    renderRulesUI();
+  }
+}
+
+function setProgress(n, pct, step, label) {
+  const sep = typeof n === 'number' ? '' : '-';
+  document.getElementById(`load${sep}${n}-fill`).style.width = pct + '%';
+  document.getElementById(`load${sep}${n}-pct`).textContent = Math.round(pct) + '%';
+  document.getElementById(`load${sep}${n}-label`).textContent = label || (pct < 100 ? 'Processing…' : 'Complete');
+  if (step) document.getElementById(`load${sep}${n}-step`).textContent = step;
+}
+
+function parseAllRows(text) {
+  const rows = []; let i = 0, len = text.length;
+  while (i < len) {
+    const row = [];
+    while (i < len) {
+      if (text[i] === '"') {
+        i++; let f = '';
+        while (i < len) {
+          if (text[i] === '"') { if (text[i+1]==='"') { f+='"'; i+=2; } else { i++; break; } }
+          else f += text[i++];
+        }
+        row.push(f);
+        if (text[i]===',') i++;
+        else if (text[i]==='\r') { i++; if(text[i]==='\n') i++; break; }
+        else if (text[i]==='\n') { i++; break; }
+        else if (i>=len) break;
+      } else {
+        let f = '';
+        while (i<len && text[i]!==',' && text[i]!=='\n' && text[i]!=='\r') f+=text[i++];
+        row.push(f.trim());
+        if (text[i]===',') i++;
+        else if (text[i]==='\r') { i++; if(text[i]==='\n') i++; break; }
+        else if (text[i]==='\n') { i++; break; }
+        else if (i>=len) break;
+      }
+    }
+    if (row.length > 0) rows.push(row);
+  }
+  return rows;
+}
+
+function parseXLSX(buffer) {
+  const wb = XLSX.read(buffer, { type: 'array' });
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  return XLSX.utils.sheet_to_json(ws, { header: 1, defval: null, raw: true });
+}
+
+// String-safe parser for files where SKUs must be preserved exactly as text
+// (e.g. long numeric SKUs that would lose precision if parsed as JS numbers).
+
+function forceText(val) {
+  if (val === null || val === undefined || val === '') return '';
+  if (typeof val === 'number') {
+    if (Number.isFinite(val)) return String(Math.round(val));
+    return '';
+  }
+  const s = String(val).trim();
+  if (!s) return '';
+  if (/^-?\d+\.?\d*[eE][+\-]?\d+$/.test(s)) {
+    try { return String(BigInt(Math.round(parseFloat(s)))); } catch(e) { return s; }
+  }
+  if (/^-?\d+\.0+$/.test(s)) return String(Math.round(parseFloat(s)));
+  return s;
+}
+
+// ───────────────────────────────────────────────
+// ITEM NAME formatting — ported directly from titlefixer.html so product
+// names go from ALL CAPS to properly cased titles (e.g. "iPhone", "OLED",
+// "256GB"), matching exactly what that standalone tool produces.
+// ───────────────────────────────────────────────
+const TITLE_EX = {iphone:'iPhone',ipad:'iPad',macbook:'MacBook',airpods:'AirPods',airtag:'AirTag',imac:'iMac',ipod:'iPod',arcade1up:'Arcade1Up',insta360:'Insta360',sandisk:'SanDisk',playstation:'PlayStation','tp-link':'TP-Link','joy-con':'Joy-Con',powerstore:'PowerStore',w10pro:'W10Pro',w11pro:'W11Pro',microsd:'MicroSD',myfirst:'myFirst'};
+const TITLE_UP = new Set(['wqhd','fhd','oled','hd','qned','hz','led','ips','rtx','mp','ssd','rgb','mm','rs','x5','x3','usb-c','aoi','linq','moza','oppo','simagic','trunk','ugreen','zagg','amoled','xbox','ps5','ps4','apc','hdd','ryzen','lego','jbl','wlan','emc','lg','uk','w11p','w10p','5g','4g','lte']);
+const TITLE_MR = /^\d+(\.\d+)?m$/i;
+// Apple product suffixes that should be title-cased (not all-caps, not all-lower)
+const TITLE_APPLE_SUFFIX = new Set(['pro','max','mini','air','plus','ultra']);
+
+function titleFixWord(w) {
+  if (!w) return w;
+  const l = w.toLowerCase();
+  if (TITLE_EX[l]) return TITLE_EX[l];
+  if (TITLE_UP.has(l)) return l.toUpperCase();
+  if (TITLE_MR.test(l)) return l.toUpperCase();
+  // Apple product suffixes — always title-cased (e.g. "Pro", "Max", "Mini")
+  if (TITLE_APPLE_SUFFIX.has(l)) return l.charAt(0).toUpperCase() + l.slice(1);
+  if (/^\d+gb$/i.test(w)) return w.replace(/gb$/i, 'GB');
+  if (/^gb$/i.test(w)) return 'GB';
+  if (/^\d+tb$/i.test(w)) return w.replace(/tb$/i, 'TB');
+  if (/^tb$/i.test(w)) return 'TB';
+  return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase();
+}
+
+function titleFixName(raw) {
+  if (!raw) return '';
+  let s = raw.trim().replace(/\//g, ' | ').replace(/ {2,}/g, ' ');
+  s = s.split(' ').map(w => w === '|' ? '|' : titleFixWord(w)).join(' ');
+  return s.replace(/\s*\|\s*/g, ' | ');
+}
+
+function cleanDescription(raw) {
+  if (!raw) return '';
+  let s = String(raw);
+  s = s.replace(/<br\s*\/?>/gi, '\n');
+  s = s.replace(/<[^>]*>/g, '');
+  s = s.replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+  s = s.split('\n').map(line => line.trim()).join('\n');
+  s = s.replace(/\n{3,}/g, '\n\n').trim();
+  return s;
+}
+
+function sortByStock(rows, stockField) {
+  const field = stockField || 'Stock Count';
+  return [...rows].sort((a, b) => {
+    const aVal = a[field], bVal = b[field];
+    const aNum = aVal === '' ? -Infinity : (parseFloat(aVal) ?? 0);
+    const bNum = bVal === '' ? -Infinity : (parseFloat(bVal) ?? 0);
+    return bNum - aNum;
+  });
+}
+
+function buildImageURLs(raw) {
+  if (!raw || !String(raw).trim()) return {};
+  const urls = {};
+  String(raw).split(',').map(p=>p.trim()).filter(Boolean).slice(0,MAX_IMAGES).forEach((p,i) => {
+    urls[`IMAGE URL ${i+1}`] = BASE_URL + p.replace(/^\/+/,'');
+  });
+  return urls;
+}
+
+function initDZ1() {
+  const dz1 = document.getElementById('dz1'), fi1 = document.getElementById('fi1');
+  if (!dz1||!fi1) return;
+  dz1.addEventListener('dragover', e => { e.preventDefault(); dz1.classList.add('drag-over'); });
+  dz1.addEventListener('dragleave', () => dz1.classList.remove('drag-over'));
+  dz1.addEventListener('drop', e => { e.preventDefault(); dz1.classList.remove('drag-over'); handleStep1(e.dataTransfer.files[0]); });
+  fi1.addEventListener('change', e => handleStep1(e.target.files[0]));
+}
+initDZ1();
+renderRulesUI();
+
+function handleStep1(file) {
+  if (!file) return;
+  document.getElementById('load1').style.display = 'block';
+  setProgress(1, 5, 'Reading file…');
+  const reader = new FileReader();
+  reader.onload = e => { setProgress(1, 25, 'Parsing rows…'); setTimeout(() => processStep1(e.target.result, file.name), 30); };
+  reader.readAsText(file);
+}
+
+function processStep1(text, fname) {
+  setProgress(1, 40, 'Detecting columns…');
+  const allRows = parseAllRows(text);
+  if (allRows.length < 2) return;
+  const headers = allRows[0].map(h => String(h||'').toLowerCase().trim());
+  const colIdx = {};
+  ALLOWED.forEach(col => { const i = headers.indexOf(col); if (i !== -1) colIdx[col] = i; });
+  setProgress(1, 60, 'Mapping fields…');
+
+  weightedRows = []; excludedRows = [];
+  let brandExcludedCount = 0;
+  let zeroPriceExcludedCount = 0;
+  let demoExcludedCount = 0;
+  let largeTvExcludedCount = 0;
+
+  // DEBUG: log RULES state so we can compare admin vs user
+  console.log('[DEBUG] RULES at Step1 processing:', JSON.stringify({
+    single: RULES.single.length,
+    pairs: RULES.pairs.length,
+    exclude: RULES.exclude.length,
+    excludePairs: (RULES.excludePairs||[]).length,
+    singleSample: RULES.single.slice(0,3)
+  }));
+
+  extractedRows = allRows.slice(1).map(vals => {
+    const src = {};
+    ALLOWED.forEach(col => { if (colIdx[col] !== undefined) src[col] = vals[colIdx[col]]; });
+    const out = {};
+    OUTPUT_FIELDS.forEach(f => out[f] = '');
+    Object.entries(SIMPLE_MAP).forEach(([sk,df]) => {
+      out[df] = df === 'SKU' ? forceText(src[sk]) : (src[sk] ? String(src[sk]) : '');
+    });
+    out['DESCRIPTION'] = cleanDescription(src['description'] || '');
+    Object.assign(out, buildImageURLs(src['additional_images']||''));
+    out['Stock Count'] = NOT_MATCHED;
+    out[STOCK_FIELD_PAMA] = NOT_MATCHED;
+    out[STOCK_FIELD_POINT] = NOT_MATCHED;
+
+    const nameVal = out['ITEM NAME'];
+    const wResult = determineWeight(nameVal);
+    out['Weight'] = wResult.weight;
+    if (wResult.weight === '21') weightedRows.push({ sku: out['SKU'], name: nameVal, rule: wResult.reason });
+    if (wResult.excluded) excludedRows.push({ sku: out['SKU'], name: nameVal, rule: wResult.reason });
+
+    return out;
+  }).filter(r => r['SKU'])
+    .filter(r => {
+      const isBrandExcluded = BRAND_EXCLUSIONS.some(brand => (r['ITEM NAME'] || '').toLowerCase().includes(brand));
+      if (isBrandExcluded) brandExcludedCount++;
+      return !isBrandExcluded;
+    })
+    .filter(r => {
+      // Remove products with no price or a price of 0 — never export them.
+      const priceNum = parseFloat(r['PRICE']);
+      const isZeroPrice = !r['PRICE'] || isNaN(priceNum) || priceNum === 0;
+      if (isZeroPrice) zeroPriceExcludedCount++;
+      return !isZeroPrice;
+    })
+    .filter(r => {
+      // Remove anything with "demo" in the name.
+      const isDemo = (r['ITEM NAME'] || '').toLowerCase().includes('demo');
+      if (isDemo) demoExcludedCount++;
+      return !isDemo;
+    })
+    .filter(r => {
+      // Remove LG/Philips/Samsung/Metz TVs that are 43" or larger.
+      const isLargeTv = isLargeBrandedTV(r['ITEM NAME']);
+      if (isLargeTv) largeTvExcludedCount++;
+      return !isLargeTv;
+    });
+
+  // Fix UTF-8/Latin-1 encoding corruption FIRST (e.g. "AirpodsÂ Pro" → "Airpods Pro"),
+  // then apply title casing — order matters because titleFixName splits on spaces, and
+  // the Â corruption binds to the preceding word, so cleaning it first ensures the
+  // title-caser sees clean text. Also clean DESCRIPTION at the same time.
+  extractedRows.forEach(r => {
+    r['ITEM NAME'] = titleFixName(fixEncoding(r['ITEM NAME']));
+    if (r['DESCRIPTION']) r['DESCRIPTION'] = fixEncoding(r['DESCRIPTION']);
+  });
+
+  window.__lastBrandExcludedCount = brandExcludedCount;
+
+  setProgress(1, 100, 'Done!', 'Complete');
+  step1Done = true;
+  setTimeout(() => {
+    document.getElementById('load1').style.display = 'none';
+    document.getElementById('s1-dropwrap').innerHTML = `<div class="dz-done-bar"><i class="ti ti-circle-check"></i><span>${fname} — ${extractedRows.length} products loaded${brandExcludedCount > 0 ? ` (${brandExcludedCount} GREE/ARTEL excluded)` : ''}${zeroPriceExcludedCount > 0 ? ` (${zeroPriceExcludedCount} zero-price excluded)` : ''}${demoExcludedCount > 0 ? ` (${demoExcludedCount} demo excluded)` : ''}${largeTvExcludedCount > 0 ? ` (${largeTvExcludedCount} large TVs excluded)` : ''}</span><button onclick="resetStep1()">Change</button></div>`;
+    document.getElementById('s1-num').className = 'step-num done';
+    document.getElementById('s1-badge').textContent = '✓ Done';
+    document.getElementById('s1-badge').className = 'step-badge done';
+    unlockStep2();
+  }, 400);
+}
+
+function unlockStep2() {
+  document.getElementById('s2-num').className = 'step-num';
+  document.getElementById('s2-title').className = 'step-title';
+  document.getElementById('s2-badge').textContent = 'Ready';
+  document.getElementById('s2-badge').className = 'step-badge pending';
+  document.getElementById('location-note').style.display = 'block';
+  unlockLocation('pama');
+  unlockLocation('point');
+}
+
+// Unlocks one location's upload zone (Pama or The Point). Both can be done
+// independently, in either order, in the same session.
+function unlockLocation(loc) {
+  const info = LOCATIONS[loc];
+  const dropwrap = document.getElementById(`${loc}-dropwrap`);
+  dropwrap.innerHTML = `
+    <div class="drop-zone" id="dz-${loc}" onclick="document.getElementById('fi-${loc}').click()">
+      <div class="dz-cloud"><i class="ti ti-cloud-upload"></i></div>
+      <div class="dz-title">${info.label}</div>
+      <div class="dz-sub">Drag &amp; Drop your Inventory Valuation file<br>.xlsx · Col A = Item No. &nbsp;·&nbsp; Col P = Quantity</div>
+      <input type="file" id="fi-${loc}" accept=".xlsx,.xls,.csv">
+    </div>`;
+  const dz = document.getElementById(`dz-${loc}`), fi = document.getElementById(`fi-${loc}`);
+  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
+  dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('drag-over'); handleLocationFile(loc, e.dataTransfer.files[0]); });
+  fi.addEventListener('change', e => handleLocationFile(loc, e.target.files[0]));
+}
+
+function handleLocationFile(loc, file) {
+  if (!file || !step1Done) return;
+  document.getElementById(`load-${loc}`).style.display = 'block';
+  setProgress(loc, 5, `Reading ${LOCATIONS[loc].label} file…`);
+  readLocationFile(loc, file);
+}
+
+function readLocationFile(loc, file) {
+  setProgress(loc, 15, 'Reading Excel file…');
+  const reader = new FileReader();
+  reader.onload = e => { setProgress(loc, 35, 'Parsing rows…'); setTimeout(() => processLocationFile(loc, e.target.result, file.name), 30); };
+  reader.readAsArrayBuffer(file);
+}
+
+function processLocationFile(loc, buffer, fname) {
+  const info = LOCATIONS[loc];
+  setProgress(loc, 50, 'Reading columns…');
+  let allRows;
+  try { allRows = parseXLSX(buffer); } catch(e) { document.getElementById(`load-${loc}-step`).textContent = 'Error: ' + e.message; return; }
+
+  info.stockMap = {}; info.unmatched = [];
+  const productSKUs = new Set(extractedRows.map(r => r['SKU']));
+
+  allRows.forEach((row) => {
+    const colA = row[0];
+    const colB = row[1]; // Item name/description — only used for "Not in Magento" export
+    const colP = row[15];
+    if (typeof colP !== 'number') return;
+    const rawSku = forceText(colA);
+    if (!rawSku) return;
+    const qty = forceText(colP) || '0';
+    const itemName = colB ? fixEncoding(String(colB).trim()) : '';
+    info.stockMap[rawSku] = qty;
+    if (!productSKUs.has(rawSku)) info.unmatched.push({ sku: rawSku, qty, name: itemName });
+  });
+
+  setProgress(loc, 75, 'Matching SKUs…');
+  let matched = 0;
+  extractedRows.forEach(row => {
+    const sku = row['SKU'];
+    if (sku && Object.prototype.hasOwnProperty.call(info.stockMap, sku)) {
+      row[info.stockField] = info.stockMap[sku];
+      matched++;
+    }
+    if (row[info.stockField] === NOT_MATCHED) row[info.stockField] = '';
+  });
+
+  info.unmatched.sort((a, b) => (parseFloat(b.qty) || 0) - (parseFloat(a.qty) || 0));
+
+  setProgress(loc, 100, `Matched ${matched} of ${extractedRows.length} SKUs`, 'Complete');
+  setTimeout(() => {
+    document.getElementById(`load-${loc}`).style.display = 'none';
+    document.getElementById(`${loc}-dropwrap`).innerHTML = `<div class="dz-done-bar"><i class="ti ti-circle-check"></i><span>${fname} — ${matched} SKUs matched</span><button onclick="resetLocation('${loc}')">Change</button></div>`;
+    info.done = true;
+    info.fileName = fname;
+    maybeUnlockStep3();
+    if (Object.values(LOCATIONS).some(l => l.done)) renderResults();
+
+    // Pulse the threshold row after first location upload to draw attention to it
+    const threshRow = document.getElementById('threshold-row');
+    if (threshRow) {
+      threshRow.classList.remove('pulse');
+      void threshRow.offsetWidth;
+      threshRow.classList.add('pulse');
+      setTimeout(() => threshRow.classList.remove('pulse'), 2200);
+    }
+  }, 400);
+}
+
+// Step 3 (Category Import) unlocks as soon as AT LEAST ONE location is done —
+// the user doesn't need to do both before moving on.
+function maybeUnlockStep3() {
+  if (Object.values(LOCATIONS).some(l => l.done) && !step2AnyDone) {
+    step2AnyDone = true;
+    unlockStep3();
+  }
+}
+let step2AnyDone = false;
+
+function resetLocation(loc) {
+  const info = LOCATIONS[loc];
+  info.stockMap = {}; info.unmatched = []; info.done = false; info.fileName = '';
+  extractedRows.forEach(r => { r[info.stockField] = ''; });
+  document.getElementById(`load-${loc}`).style.display = 'none';
+  unlockLocation(loc);
+  if (Object.values(LOCATIONS).some(l => l.done)) renderResults();
+}
+
+// Removes a trailing "-1" from Category/Sub Category text only (e.g. "Soundbars-1"
+// -> "Soundbars"). Deliberately NOT applied anywhere else, since "-1" can be a
+// meaningful part of a real SKU and must never be touched there.
+function stripDash1(s) {
+  if (!s) return s;
+  return s.replace(/-1\b/g, '');
+}
+
+// ── Title-case helper for Category/Sub Category, e.g. "ACTION CAMERAS" -> "Action Cameras" ──
+// Also fixes known acronyms (SD, USB, PC, PCs, TV, TVs, VR, LG) to their correct casing
+// instead of plain title-case (which would give "Sd", "Usb", "Pc", "Tv", etc.), and
+// renames "Desktops" -> "Desktop" specifically before "PCs" per Damian's correction.
+const ACRONYM_FIXES = {
+  'sd': 'SD',
+  'usb': 'USB',
+  'pc': 'PC',
+  'pcs': 'PCs',
+  'tv': 'TV',
+  'tvs': 'TVs',
+  'vr': 'VR',
+  'lg': 'LG',
+  'ups': 'UPS'
+};
+
+function titleCase(s) {
+  if (!s) return '';
+  let result = s.toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+
+  // Apply acronym fixes word-by-word (case-insensitive, whole word only)
+  result = result.split(' ').map(word => {
+    // Strip trailing punctuation (e.g. "Cards," ) for matching, keep it on output
+    const bare = word.replace(/[^a-zA-Z]/g, '');
+    const fixed = ACRONYM_FIXES[bare.toLowerCase()];
+    if (fixed) return word.replace(new RegExp(bare, 'i'), fixed);
+    return word;
+  }).join(' ');
+
+  // "Desktops PCs" -> "Desktop PCs" (singular, per confirmed correction)
+  result = result.replace(/\bDesktops PCs\b/i, 'Desktop PCs');
+
+  // Add spaces around "&" when missing, e.g. "Smartphones&Mobile" -> "Smartphones & Mobile"
+  result = result.replace(/(\S)&(\S)/g, '$1 & $2');
+
+  return result;
+}
+
+function unlockStep3() {
+  document.getElementById('s3-num').className = 'step-num';
+  document.getElementById('s3-title').className = 'step-title';
+  document.getElementById('s3-badge').textContent = 'Ready';
+  document.getElementById('s3-badge').className = 'step-badge pending';
+  document.getElementById('s3-dropwrap').innerHTML = `
+    <div class="drop-zone" id="dz3" onclick="document.getElementById('fi3').click()">
+      <div class="dz-cloud"><i class="ti ti-cloud-upload"></i></div>
+      <div class="dz-title">Category Import</div>
+      <div class="dz-sub">Drag &amp; Drop your category file<br>Col D = SKU &nbsp;·&nbsp; Col B = Sub Category &nbsp;·&nbsp; from row 4</div>
+      <input type="file" id="fi3" accept=".xlsx,.xls,.csv">
+    </div>`;
+  const dz3 = document.getElementById('dz3'), fi3 = document.getElementById('fi3');
+  dz3.addEventListener('dragover', e => { e.preventDefault(); dz3.classList.add('drag-over'); });
+  dz3.addEventListener('dragleave', () => dz3.classList.remove('drag-over'));
+  dz3.addEventListener('drop', e => { e.preventDefault(); dz3.classList.remove('drag-over'); handleStep3(e.dataTransfer.files[0]); });
+  fi3.addEventListener('change', e => handleStep3(e.target.files[0]));
+}
+
+function handleStep3(file) {
+  if (!file||!step1Done) return;
+  document.getElementById('load3').style.display = 'block';
+  setProgress(3, 5, 'Reading category file…');
+  readStep3File(file);
+}
+
+function readStep3File(file) {
+  setProgress(3, 15, 'Reading Excel file…');
+  const reader = new FileReader();
+  reader.onload = e => { setProgress(3, 35, 'Parsing rows…'); setTimeout(() => processStep3(e.target.result, file.name), 30); };
+  reader.readAsArrayBuffer(file);
+}
+
+let uncategorizedRows = [];
+
+function processStep3(buffer, fname) {
+  setProgress(3, 50, 'Reading columns…');
+  let allRows;
+  try { allRows = parseXLSX(buffer); } catch(e) { document.getElementById('load3-step').textContent = 'Error: ' + e.message; return; }
+
+  // Col B = index 1 (Sub Category), Col D = index 3 (SKU). Data starts at row 4 (index 3).
+  const subCategoryMap = {};
+  allRows.forEach((row, i) => {
+    if (i < 3) return; // skip header rows 1-3
+    const rawSku = forceText(row[3]);
+    const rawSub = row[1] !== null && row[1] !== undefined ? String(row[1]).trim() : '';
+    if (!rawSku || !rawSub) return;
+    subCategoryMap[rawSku] = rawSub;
+  });
+
+  setProgress(3, 75, 'Matching categories…');
+  let categorized = 0;
+  uncategorizedRows = [];
+  const shopExcludedSKUs = new Set();
+
+  extractedRows.forEach(row => {
+    const sku = row['SKU'];
+    const rawSub = subCategoryMap[sku];
+    if (!rawSub) return; // no category data for this SKU at all
+
+    // If the Sub Category contains "SHOP", the entire product is removed from the
+    // export (same treatment as GREE/ARTEL brand exclusions), not just left blank.
+    if (rawSub.toLowerCase().includes('shop')) {
+      shopExcludedSKUs.add(sku);
+      return;
+    }
+
+    // Normalize: lowercase + strip ALL whitespace/punctuation so "SMARTPHONE CASES",
+    // "smartphonecases", and "Smartphone-Cases" all resolve to the same lookup key.
+    const subKey = normalizeKey(rawSub);
+
+    // Intentionally-ignored sub categories (e.g. "Air Conditioners ACS") — blank,
+    // but not counted or shown in the Unmapped Category tab.
+    if (SUBCATEGORY_SKIP_SILENTLY.includes(subKey)) {
+      row['SUB CATEGORY'] = '';
+      row['CATEGORY'] = '';
+      return;
+    }
+
+    const parentLower = NORMALIZED_CATEGORY_MAP[subKey];
+
+    if (parentLower) {
+      row['SUB CATEGORY'] = titleCase(stripDash1(rawSub));
+      row['CATEGORY'] = titleCase(stripDash1(parentLower));
+      categorized++;
+    } else {
+      // Sub category present but not in our lookup table — leave both blank, track it
+      row['SUB CATEGORY'] = '';
+      row['CATEGORY'] = '';
+      uncategorizedRows.push({ sku, name: row['ITEM NAME'], subCategory: rawSub });
+    }
+  });
+
+  let shopExcludedCount = 0;
+  if (shopExcludedSKUs.size > 0) {
+    const before = extractedRows.length;
+    extractedRows = extractedRows.filter(r => !shopExcludedSKUs.has(r['SKU']));
+    shopExcludedCount = before - extractedRows.length;
+  }
+
+  setProgress(3, 100, `Matched ${categorized} categories, ${uncategorizedRows.length} unmapped${shopExcludedCount > 0 ? `, ${shopExcludedCount} removed (SHOP)` : ''}`, 'Complete');
+  setTimeout(() => {
+    document.getElementById('load3').style.display = 'none';
+    document.getElementById('s3-dropwrap').innerHTML = `<div class="dz-done-bar"><i class="ti ti-circle-check"></i><span>${fname} — ${categorized} categorized${uncategorizedRows.length > 0 ? `, ${uncategorizedRows.length} unmapped` : ''}${shopExcludedCount > 0 ? `, ${shopExcludedCount} removed (SHOP)` : ''}</span><button onclick="resetStep3()">Change</button></div>`;
+    document.getElementById('s3-num').className = 'step-num done';
+    document.getElementById('s3-badge').textContent = '✓ Done';
+    document.getElementById('s3-badge').className = 'step-badge done';
+    renderResults();
+  }, 400);
+}
+
+function resetStep3(lock) {
+  document.getElementById('load3').style.display = 'none';
+  document.getElementById('s3-num').className = lock ? 'step-num locked' : 'step-num';
+  document.getElementById('s3-title').className = lock ? 'step-title locked' : 'step-title';
+  document.getElementById('s3-badge').textContent = lock ? 'Locked' : 'Ready';
+  document.getElementById('s3-badge').className = 'step-badge pending';
+  if (lock) {
+    document.getElementById('s3-dropwrap').innerHTML = `<div class="drop-zone locked-zone" id="dz3"><div class="dz-cloud"><i class="ti ti-lock"></i></div><div class="dz-title">Complete Step 2 first</div><div class="dz-sub">This does not need to be uploaded always</div></div>`;
+  } else {
+    extractedRows.forEach(r => { r['CATEGORY'] = ''; r['SUB CATEGORY'] = ''; });
+    uncategorizedRows = [];
+    unlockStep3();
+  }
+}
+
+let activeLocationView = 'pama';
+
+function setActiveLocationView(loc) {
+  activeLocationView = loc;
+  document.getElementById('loc-toggle-pama').className = 'loc-toggle-btn' + (loc === 'pama' ? ' active' : '');
+  document.getElementById('loc-toggle-point').className = 'loc-toggle-btn' + (loc === 'point' ? ' active' : '');
+  renderResults();
+}
+
+function renderResults() {
+  const loc = activeLocationView;
+  const info = LOCATIONS[loc];
+  const stockField = info.stockField;
+
+  // If this location hasn't been uploaded yet, show a clear placeholder
+  // instead of rendering misleading empty/zero results
+  if (!info.done) {
+    document.getElementById('table-head').innerHTML = '';
+    document.getElementById('table-body').innerHTML = `<tr><td colspan="13" style="text-align:center;padding:2rem;color:#9a9690;font-style:italic">${info.label} file not yet uploaded — upload it in Step 2 above to see results here.</td></tr>`;
+    document.getElementById('stat-total').textContent = '—';
+    document.getElementById('stat-stock').textContent = '—';
+    document.getElementById('stat-unmatched').textContent = '—';
+    document.getElementById('count-notinpama').textContent = '0';
+    document.getElementById('count-notinmagento').textContent = '0';
+    document.getElementById('nostock-list').innerHTML = `<div class="empty-state">${info.label} not yet uploaded.</div>`;
+    document.getElementById('unmatched-list').innerHTML = `<div class="empty-state">${info.label} not yet uploaded.</div>`;
+    document.getElementById('btn-export-notinmagento').style.display = 'none';
+    document.getElementById('results-section').style.display = 'block';
+    document.getElementById('btn-download-pama').style.display = LOCATIONS.pama.done ? 'inline-flex' : 'none';
+    document.getElementById('btn-download-point').style.display = LOCATIONS.point.done ? 'inline-flex' : 'none';
+    return;
+  }
+
+  // Update labels that mention the active location by name
+  document.getElementById('unmatched-loc-name').textContent = info.label;
+  document.getElementById('notinmagento-loc-name').textContent = info.label;
+  document.getElementById('tab-unmatched-loc').textContent = info.label.replace(' Shopping Mall', '');
+  document.getElementById('stat-unmatched').parentElement.querySelector('.stat-lbl').textContent = `Not in ${info.label.replace(' Shopping Mall', '')}`;
+
+  const head = document.getElementById('table-head'), body = document.getElementById('table-body');
+  head.innerHTML = OUTPUT_FIELDS.map(f => `<th>${EXPORT_HEADERS[f] || f}</th>`).join('');
+  body.innerHTML = '';
+
+  const sortedRows = sortByStock(extractedRows, stockField);
+  const threshold = getThreshold();
+
+  // Show matched rows first (sorted by stock), then unmatched at the bottom
+  const previewMatched = sortedRows.filter(r => r[stockField] !== '' && r[stockField] !== NOT_MATCHED && r[stockField] !== undefined && r[stockField] !== null);
+  const previewUnmatched = sortedRows.filter(r => r[stockField] === '' || r[stockField] === NOT_MATCHED || r[stockField] === undefined || r[stockField] === null);
+  const allPreviewRows = [...previewMatched, ...previewUnmatched];
+
+  allPreviewRows.forEach(row => {
+    const isUnmatched = row[stockField] === '' || row[stockField] === NOT_MATCHED || row[stockField] === undefined || row[stockField] === null;
+    const tr = document.createElement('tr');
+    if (isUnmatched) tr.style.opacity = '0.5';
+    OUTPUT_FIELDS.forEach(f => {
+      const td = document.createElement('td');
+      const val = f === 'Stock Count' ? (row[stockField] ?? '') : (row[f] ?? '');
+      if (f === 'enabled') {
+        if (isUnmatched) { td.textContent = 'FALSE'; td.className = 'stock-zero'; }
+        else {
+          const stockNum = parseFloat(row[stockField]);
+          const enabled = threshold !== null && !isNaN(stockNum) && stockNum >= threshold;
+          td.textContent = enabled ? 'TRUE' : 'FALSE';
+          td.className = enabled ? 'stock-filled' : 'stock-zero';
+        }
+      } else if (f === 'Stock Count') {
+        if (isUnmatched) { td.textContent = '0'; td.className = 'stock-zero'; }
+        else if (val === '0') { td.textContent = '0'; td.className = 'stock-zero'; }
+        else { td.textContent = val; td.className = 'stock-filled'; }
+      } else if (f === 'DESCRIPTION') {
+        td.textContent = val ? val.split('\n')[0] : '—';
+        if (!val) td.className = 'empty';
+        td.title = val;
+      } else if (f === 'Weight') {
+        if (val === '21') { td.textContent = '21kg'; td.className = 'weight-set'; }
+        else { td.textContent = '—'; td.className = 'empty'; }
+      } else if (f === 'CATEGORY' || f === 'SUB CATEGORY') {
+        if (val) { td.textContent = val; td.className = 'category-set'; }
+        else { td.textContent = '—'; td.className = 'empty'; }
+      } else if (!val) { td.textContent = '—'; td.className = 'empty'; }
+      else if (f.startsWith('IMAGE URL')) { td.textContent = val; td.className = 'url'; td.title = val; }
+      else td.textContent = val;
+      tr.appendChild(td);
+    });
+    body.appendChild(tr);
+  });
+
+  const total = extractedRows.length;
+  const withStock = extractedRows.filter(r => r[stockField] !== '' && r[stockField] !== NOT_MATCHED).length;
+  const notInLoc = total - withStock;
+  const notInMagento = info.unmatched.length;
+
+  document.getElementById('stat-total').textContent = total.toLocaleString();
+  document.getElementById('stat-stock').textContent = withStock.toLocaleString();
+  document.getElementById('stat-unmatched').textContent = notInLoc.toLocaleString();
+  document.getElementById('count-notinpama').textContent = notInLoc.toLocaleString();
+  document.getElementById('count-notinmagento').textContent = notInMagento.toLocaleString();
+  document.getElementById('stat-weighted').textContent = weightedRows.length.toLocaleString();
+  document.getElementById('stat-excluded').textContent = excludedRows.length.toLocaleString();
+  document.getElementById('count-weighted').textContent = weightedRows.length.toLocaleString();
+
+  const ns = document.getElementById('nostock-list');
+  const noStockRows = extractedRows.filter(r => r[stockField] === '' || r[stockField] === NOT_MATCHED);
+  ns.innerHTML = noStockRows.length === 0
+    ? `<div class="empty-state">All products matched in ${info.label} ✓</div>`
+    : noStockRows.slice(0,200).map(r => `<div class="result-pill unmatched"><span class="rp-sku">${r['SKU']}</span><span class="rp-name">${r['ITEM NAME']||''}</span><span class="rp-miss">Not in ${info.label.replace(' Shopping Mall','')}</span></div>`).join('')
+      + (noStockRows.length > 200 ? `<div class="empty-state">…and ${noStockRows.length-200} more</div>` : '');
+
+  const ul = document.getElementById('unmatched-list');
+  const exportBtn = document.getElementById('btn-export-notinmagento');
+  if (info.unmatched.length === 0) {
+    ul.innerHTML = `<div class="empty-state">All ${info.label} SKUs found in Magento import ✓</div>`;
+    exportBtn.style.display = 'none';
+  } else {
+    exportBtn.style.display = 'inline-flex';
+    ul.innerHTML = info.unmatched.slice(0,200).map(p => {
+      const qtyNum = parseFloat(p.qty) || 0;
+      const stockClass = qtyNum > 0 ? 'rp-stock' : 'rp-zero';
+      // SKUs in "Not in Magento" are by definition NOT in extractedRows, so no title available
+      return `<div class="result-pill ${qtyNum > 0 ? 'matched' : 'zero'}"><span class="rp-sku">${p.sku}</span><span class="${stockClass}">${p.qty}</span></div>`;
+    }).join('') + (info.unmatched.length > 200 ? `<div class="empty-state">…and ${info.unmatched.length-200} more (included in export)</div>` : '');
+  }
+
+  const wl = document.getElementById('weighted-list');
+  wl.innerHTML = weightedRows.length === 0
+    ? '<div class="empty-state">No products matched a 21kg rule</div>'
+    : weightedRows.slice(0,200).map(w => `<div class="result-pill weighted"><span class="rp-sku">${w.sku}</span><span class="rp-name">${w.name}</span><span class="rp-weight">21kg</span></div>`).join('')
+      + (weightedRows.length > 200 ? `<div class="empty-state">…and ${weightedRows.length-200} more</div>` : '');
+
+  // Category stats
+  const categorized = extractedRows.filter(r => r['CATEGORY']).length;
+  document.getElementById('stat-categorized').textContent = categorized.toLocaleString();
+  document.getElementById('stat-uncategorized').textContent = uncategorizedRows.length.toLocaleString();
+  document.getElementById('count-uncategorized').textContent = uncategorizedRows.length.toLocaleString();
+
+  const ucl = document.getElementById('uncategorized-list');
+  ucl.innerHTML = uncategorizedRows.length === 0
+    ? '<div class="empty-state">Every sub category found a parent ✓</div>'
+    : uncategorizedRows.slice(0,200).map(u => `<div class="result-pill unmatched"><span class="rp-sku">${u.sku}</span><span class="rp-name">${u.name||''}</span><span class="rp-miss">${u.subCategory}</span></div>`).join('')
+      + (uncategorizedRows.length > 200 ? `<div class="empty-state">…and ${uncategorizedRows.length-200} more</div>` : '');
+
+  document.getElementById('results-section').style.display = 'block';
+
+  // Each location's download button only appears once that location's import
+  // has actually been completed — no point offering an export with no stock data.
+  document.getElementById('btn-download-pama').style.display = LOCATIONS.pama.done ? 'inline-flex' : 'none';
+  document.getElementById('btn-download-point').style.display = LOCATIONS.point.done ? 'inline-flex' : 'none';
+}
+
+function searchSKU() {
+  const q = document.getElementById('sku-search').value.trim();
+  const container = document.getElementById('search-results');
+  if (!q) { container.innerHTML = '<div class="empty-state">Type a SKU above to check its match</div>'; return; }
+  const info = LOCATIONS[activeLocationView];
+  const results = extractedRows.filter(r => r['SKU'].toLowerCase().includes(q.toLowerCase())).slice(0,20);
+  if (!results.length) { container.innerHTML = '<div class="empty-state">No products found with that SKU</div>'; return; }
+  container.innerHTML = results.map(r => {
+    const stock = r[info.stockField];
+    const isMatched = stock !== '' && stock !== NOT_MATCHED;
+    const isZero = stock === '0';
+    const weightTag = r['Weight'] === '21' ? `<span class="rp-weight">21kg</span>` : '';
+    return `<div class="result-pill ${isMatched?(isZero?'zero':'matched'):'unmatched'}">
+      <span class="rp-sku">${r['SKU']}</span>
+      <span class="rp-name">${r['ITEM NAME']||''}</span>
+      ${weightTag}
+      ${isMatched?(isZero?`<span class="rp-zero">0</span>`:`<span class="rp-stock">${stock}</span>`):`<span class="rp-miss">Not in ${info.label.replace(' Shopping Mall','')}</span>`}
+    </div>`;
+  }).join('');
+}
+
+function showTab(tab) {
+  ['search','unmatched','nostock','weighted','uncategorized'].forEach(t => {
+    document.getElementById(`panel-${t}`).style.display = t===tab?'block':'none';
+    document.getElementById(`tab-${t}`).className = 'inspector-tab'+(t===tab?' active':'');
+  });
+}
+
+// Builds and downloads the export CSV for one location, swapping that
+// location's stock field into the "Stock Count" column, sorted by that
+// location's stock (highest first) — exactly as the single-location export
+// always worked, just parameterized by which location is being exported.
+// Fixes UTF-8 text that was misread as Latin-1/Windows-1252.
+// Each corrupted sequence maps to exactly one correct character —
+// this is a deterministic lookup, not a guess.
+function fixEncoding(s) {
+  if (!s) return s;
+  return s
+    // Multi-character sequences first (longest match wins)
+    .replace(/â€™/g, '\u2019')   // ' right single quote / apostrophe
+    .replace(/â€œ/g, '\u201C')   // " left double curly quote
+    .replace(/â€/g,  '\u201D')   // " right double curly quote
+    .replace(/â€"/g, '\u2013')   // – en dash
+    .replace(/â€"/g, '\u2014')   // — em dash
+    .replace(/â„¢/g, '\u2122')   // ™ trademark
+    .replace(/Â®/g,  '\u00AE')   // ® registered trademark
+    .replace(/Â°/g,  '\u00B0')   // ° degree sign
+    .replace(/Â£/g,  '\u00A3')   // £ pound sign
+    .replace(/Â©/g,  '\u00A9')   // © copyright
+    .replace(/Ã©/g,  '\u00E9')   // é
+    .replace(/Ã /g,  '\u00E0')   // à
+    .replace(/Ã¨/g,  '\u00E8')   // è
+    .replace(/Ã¹/g,  '\u00F9')   // ù
+    .replace(/Ã¢/g,  '\u00E2')   // â
+    .replace(/Ã®/g,  '\u00EE')   // î
+    .replace(/Ã´/g,  '\u00F4')   // ô
+    .replace(/Ã»/g,  '\u00FB')   // û
+    .replace(/Ã«/g,  '\u00EB')   // ë
+    .replace(/Ã¯/g,  '\u00EF')   // ï
+    .replace(/Ã¼/g,  '\u00FC')   // ü
+    .replace(/Ã¶/g,  '\u00F6')   // ö
+    .replace(/Ã¤/g,  '\u00E4')   // ä
+    .replace(/Ã±/g,  '\u00F1')   // ñ
+    .replace(/Ã§/g,  '\u00E7')   // ç
+    // Â followed by a space or at end = non-breaking space → regular space
+    .replace(/Â /g, ' ')
+    // Standalone Â (before a letter/number) = stray non-breaking space → remove
+    .replace(/Â(?=[A-Za-z0-9])/g, '')
+    // Any remaining lone Â = remove
+    .replace(/Â/g, '')
+    // Collapse any double-spaces left behind
+    .replace(/ {2,}/g, ' ')
+    .trim();
+}
+
+function downloadLocationCSV(loc) {
+  const info = LOCATIONS[loc];
+  const escape = v => `"${String(v).replace(/"/g,'""')}"`;
+  const threshold = getThreshold();
+
+  // Use mapped export header names (merchant_sku, name, etc.)
+  const header = OUTPUT_FIELDS.map(f => escape(EXPORT_HEADERS[f] || f)).join(',');
+
+  // Include ALL products from Magento for this location's export:
+  // - Products found in the location file → sorted by stock (highest first)
+  // - Products NOT found in the location file → appended at the bottom with stock 0, enabled FALSE
+  let exportRows = sortByStock(extractedRows, info.stockField);
+
+  // Split into matched (have stock data) and unmatched (no stock for this location)
+  const matchedRows = exportRows.filter(row => {
+    const stockVal = row[info.stockField];
+    return stockVal !== '' && stockVal !== NOT_MATCHED && stockVal !== undefined && stockVal !== null;
+  });
+  const unmatchedRows = exportRows.filter(row => {
+    const stockVal = row[info.stockField];
+    return stockVal === '' || stockVal === NOT_MATCHED || stockVal === undefined || stockVal === null;
+  });
+
+  // Combine: matched first (sorted by stock), unmatched at the bottom
+  exportRows = [...matchedRows, ...unmatchedRows];
+
+  const rows = exportRows.map(row => OUTPUT_FIELDS.map(f => {
+    const stockVal = row[info.stockField];
+    const isUnmatched = stockVal === '' || stockVal === NOT_MATCHED || stockVal === undefined || stockVal === null;
+
+    // enabled: FALSE for unmatched rows, or if stock < threshold, TRUE if stock >= threshold
+    if (f === 'enabled') {
+      if (isUnmatched) return escape('FALSE');
+      const stockNum = parseFloat(stockVal);
+      if (threshold === null || isNaN(stockNum)) return escape('FALSE');
+      return escape(stockNum >= threshold ? 'TRUE' : 'FALSE');
+    }
+
+    // Stock Count: unmatched rows show as 0
+    if (f === 'Stock Count') {
+      return escape(isUnmatched ? '0' : (stockVal || '0'));
+    }
+
+    let val = row[f] || '';
+
+    // Weight stored as '21' internally, exports as '21kg'
+    if (f === 'Weight' && val === '21') val = '21kg';
+
+    // Fix UTF-8 encoding corruption on text fields
+    if (val && !['SKU','Weight','PRICE','enabled'].includes(f) && !f.startsWith('IMAGE URL')) {
+      val = fixEncoding(val);
+    }
+
+    // SKU formatted as text formula so Excel doesn't mangle it
+    if (f === 'SKU' && val) return `"=""${val}"""`;
+    return escape(val);
+  }).join(','));
+
+  // UTF-8 BOM so Excel opens the file with correct encoding
+  const blob = new Blob(['\uFEFF' + header+'\n'+rows.join('\n')], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${info.label} Wolt Stock.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function saveThreshold() {
+  const val = document.getElementById('threshold-input').value;
+  if (val === '' || val === null) {
+    localStorage.removeItem('csv_extractor_threshold');
+  } else {
+    localStorage.setItem('csv_extractor_threshold', val);
+  }
+}
+
+function getThreshold() {
+  const val = document.getElementById('threshold-input') ? document.getElementById('threshold-input').value : '';
+  if (val === '' || val === null) return null;
+  const n = parseInt(val, 10);
+  return isNaN(n) ? null : n;
+}
+
+function downloadWeightRulesCSV() {
+  const escape = v => `"${String(v).replace(/"/g,'""')}"`;
+  const rows = [];
+
+  // Section: Single keywords
+  rows.push([escape('RULE TYPE'), escape('KEYWORD A'), escape('KEYWORD B'), escape('EFFECT')].join(','));
+  RULES.single.forEach(kw => {
+    rows.push([escape('Single keyword'), escape(kw.replace(/\b\w/g,c=>c.toUpperCase())), escape(''), escape('Set weight to 21kg')].join(','));
+  });
+
+  // Section: Pair keywords (set)
+  RULES.pairs.forEach(([a, b]) => {
+    rows.push([escape('Pair (both must appear)'), escape(a.replace(/\b\w/g,c=>c.toUpperCase())), escape(b.replace(/\b\w/g,c=>c.toUpperCase())), escape('Set weight to 21kg')].join(','));
+  });
+
+  // Section: Single exclusions
+  RULES.exclude.forEach(kw => {
+    rows.push([escape('Single exclusion'), escape(kw.replace(/\b\w/g,c=>c.toUpperCase())), escape(''), escape('NEVER set 21kg if this word is present')].join(','));
+  });
+
+  // Section: Pair exclusions
+  (RULES.excludePairs || []).forEach(([a, b]) => {
+    rows.push([escape('Pair exclusion (both)'), escape(a.replace(/\b\w/g,c=>c.toUpperCase())), escape(b.replace(/\b\w/g,c=>c.toUpperCase())), escape('NEVER set 21kg if both appear together')].join(','));
+  });
+
+  // Section: Brand/export exclusions (hardcoded)
+  BRAND_EXCLUSIONS.forEach(b => {
+    rows.push([escape('Brand exclusion'), escape(b.toUpperCase()), escape(''), escape('Entire product row removed from export')].join(','));
+  });
+  rows.push([escape('Demo exclusion'), escape('Demo'), escape(''), escape('Entire product row removed from export')].join(','));
+  rows.push([escape('Large TV exclusion'), escape('LG/Philips/Samsung/Metz + size ≥43"'), escape(''), escape('Entire product row removed from export')].join(','));
+  rows.push([escape('Zero price exclusion'), escape('Price = 0 or blank'), escape(''), escape('Entire product row removed from export')].join(','));
+  rows.push([escape('Sub Category exclusion'), escape('Sub Category contains SHOP'), escape(''), escape('Entire product row removed from export')].join(','));
+
+  const blob = new Blob(['\uFEFF' + rows.join('\n')], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href=url; a.download='weight_rules.csv'; a.click();
+  URL.revokeObjectURL(url);
+}
+
+function downloadNotInMagentoCSV() {
+  const info = LOCATIONS[activeLocationView];
+  const escape = v => `"${String(v).replace(/"/g,'""')}"`;
+  const header = ['SKU','Stock Count','ITEM NAME'].map(escape).join(',');
+  const rows = info.unmatched.map(p => {
+    const skuCell = `"=""${p.sku}"""`;
+    return [skuCell, escape(p.qty), escape(p.name || '')].join(',');
+  });
+  const blob = new Blob(['\uFEFF' + header+'\n'+rows.join('\n')],{type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `not_in_magento_${activeLocationView}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function resetStep1() {
+  extractedRows=[]; weightedRows=[]; excludedRows=[]; uncategorizedRows=[]; step1Done=false; step2AnyDone=false;
+  LOCATIONS.pama.stockMap={}; LOCATIONS.pama.unmatched=[]; LOCATIONS.pama.done=false; LOCATIONS.pama.fileName='';
+  LOCATIONS.point.stockMap={}; LOCATIONS.point.unmatched=[]; LOCATIONS.point.done=false; LOCATIONS.point.fileName='';
+  document.getElementById('results-section').style.display='none';
+  document.getElementById('load1').style.display='none';
+  document.getElementById('s1-dropwrap').innerHTML=`<div class="drop-zone" id="dz1" onclick="document.getElementById('fi1').click()"><div class="dz-cloud"><i class="ti ti-cloud-upload"></i></div><div class="dz-title">Upload your product file here</div><div class="dz-sub">Drag &amp; Drop<br>System &gt; Export &gt; Entity Type &gt; Products<br><span style="color:#9a9690;font-size:11px">This import includes: sku · name · price · description · additional_images</span></div><input type="file" id="fi1" accept=".csv,.tsv,.txt"></div>`;
+  document.getElementById('s1-num').className='step-num';
+  document.getElementById('s1-badge').textContent='Waiting'; document.getElementById('s1-badge').className='step-badge pending';
+  initDZ1(); resetStep2(true);
+}
+
+function resetStep2(lock) {
+  document.getElementById('results-section').style.display='none';
+  document.getElementById('location-note').style.display='none';
+  document.getElementById('s2-num').className=lock?'step-num locked':'step-num';
+  document.getElementById('s2-title').className=lock?'step-title locked':'step-title';
+  document.getElementById('s2-badge').textContent=lock?'Locked':'Ready';
+  document.getElementById('s2-badge').className='step-badge pending';
+  step2AnyDone = false;
+  document.getElementById('load-pama').style.display='none';
+  document.getElementById('load-point').style.display='none';
+  if (lock) {
+    document.getElementById('pama-dropwrap').innerHTML=`<div class="drop-zone locked-zone" id="dz-pama"><div class="dz-cloud"><i class="ti ti-lock"></i></div><div class="dz-title">Complete Step 1 first</div><div class="dz-sub">Upload Inventory Valuation</div></div>`;
+    document.getElementById('point-dropwrap').innerHTML=`<div class="drop-zone locked-zone" id="dz-point"><div class="dz-cloud"><i class="ti ti-lock"></i></div><div class="dz-title">Complete Step 1 first</div><div class="dz-sub">Upload Inventory Valuation</div></div>`;
+    resetStep3(true);
+  } else {
+    extractedRows.forEach(r => { r[STOCK_FIELD_PAMA] = NOT_MATCHED; r[STOCK_FIELD_POINT] = NOT_MATCHED; });
+    unlockStep2();
+    resetStep3(true);
+  }
+}
+// ── STEP 4: WOLT STOCK UPDATER ──────────────────────────────────────────────
+// Completely independent of Steps 1-3.
+// - Wolt Current File: merchant_sku, enabled, total, price (Col A-D)
+// - My Stock Export: LS Retail file, Col A = SKU, Col P = qty → updates total
+// - Magento Price Checker (optional): Col A = SKU, Col N = price → updates price
+// Output: merchant_sku | price | enabled | total
+
+const WOLT_STORAGE_KEY = 'csv_extractor_wolt_threshold';
+let woltData = { woltRows: null, stockMap: null, magentoPriceMap: null };
+
+// Restore saved threshold on page load
+(function restoreWoltThreshold() {
+  const saved = localStorage.getItem(WOLT_STORAGE_KEY);
+  const el = document.getElementById('wolt-threshold-input');
+  if (el) el.value = saved !== null ? saved : '1';
+})();
+
+function saveWoltThreshold() {
+  const val = document.getElementById('wolt-threshold-input').value;
+  if (val === '') localStorage.removeItem(WOLT_STORAGE_KEY);
+  else localStorage.setItem(WOLT_STORAGE_KEY, val);
+}
+
+function getWoltThreshold() {
+  const val = document.getElementById('wolt-threshold-input').value;
+  if (val === '' || val === null) return null;
+  const n = parseInt(val, 10);
+  return isNaN(n) ? null : n;
+}
+
+// Wire up drop zones for all three Step 4 files
+(function initWoltDZ() {
+  ['wolt','myexport','magentoprice'].forEach(id => {
+    const dz = document.getElementById(`dz-${id}`);
+    const fi = document.getElementById(`fi-${id}`);
+    if (!dz || !fi) return;
+    dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
+    dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
+    dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('drag-over'); handleWoltFile(id, e.dataTransfer.files[0]); });
+    fi.addEventListener('change', e => handleWoltFile(id, e.target.files[0]));
+  });
+})();
+
+function handleWoltFile(id, file) {
+  if (!file) return;
+  document.getElementById(`load-${id}`).style.display = 'block';
+  setProgress(id, 10, 'Reading file…');
+  const reader = new FileReader();
+  reader.onload = e => {
+    setProgress(id, 40, 'Parsing…');
+    setTimeout(() => processWoltFile(id, e.target.result, file.name), 30);
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function processWoltFile(id, buffer, fname) {
+  let allRows;
+  try { allRows = parseXLSX(buffer); } catch(e) {
+    document.getElementById(`load-${id}-step`).textContent = 'Error: ' + e.message;
+    return;
+  }
+
+  if (id === 'wolt') {
+    // Wolt file: Col A = merchant_sku, Col B = enabled, Col C = total, Col D = price
+    woltData.woltRows = allRows.slice(1).map(row => {
+      const sku = forceText(row[0]);
+      const rawTotal = row[2];
+      const total = (rawTotal === false || rawTotal === 'False' || rawTotal === null || rawTotal === undefined)
+        ? '0' : forceText(rawTotal) || '0';
+      const rawPrice = row[3];
+      const price = (rawPrice === false || rawPrice === 'False' || rawPrice === null || rawPrice === undefined)
+        ? '' : String(rawPrice).trim();
+      return { sku, total, price };
+    }).filter(r => r.sku);
+    setProgress('wolt', 100, `${woltData.woltRows.length} SKUs loaded`, 'Complete');
+    setTimeout(() => {
+      document.getElementById('load-wolt').style.display = 'none';
+      document.getElementById('wolt-dropwrap').innerHTML = `<div class="dz-done-bar"><i class="ti ti-circle-check"></i><span>${fname} — ${woltData.woltRows.length} SKUs</span><button onclick="resetWoltFile('wolt')">Change</button></div>`;
+      maybeShowWoltResult();
+    }, 400);
+
+  } else if (id === 'myexport') {
+    // LS Retail Inventory Valuation: Col A = SKU, Col P (idx 15) = qty
+    woltData.stockMap = {};
+    allRows.forEach(row => {
+      const colP = row[15];
+      // Accept both numbers and numeric strings — some LS Retail exports store qty as string
+      if (colP === null || colP === undefined || colP === '' || colP === false) return;
+      const qtyNum = parseFloat(colP);
+      if (isNaN(qtyNum)) return;
+      const rawSku = forceText(row[0]);
+      if (!rawSku) return;
+      woltData.stockMap[rawSku] = String(qtyNum);
+    });
+    const count = Object.keys(woltData.stockMap).length;
+    setProgress('myexport', 100, `${count} SKUs loaded`, 'Complete');
+    setTimeout(() => {
+      document.getElementById('load-myexport').style.display = 'none';
+      document.getElementById('myexport-dropwrap').innerHTML = `<div class="dz-done-bar"><i class="ti ti-circle-check"></i><span>${fname} — ${count} SKUs</span><button onclick="resetWoltFile('myexport')">Change</button></div>`;
+      maybeShowWoltResult();
+    }, 400);
+
+  } else if (id === 'magentoprice') {
+    // Magento export: Col A = merchant_sku, Col N (idx 13) = price
+    // Preserve decimal prices exactly — use String() not forceText() to avoid rounding
+    woltData.magentoPriceMap = {};
+    const priceMapNorm = {};
+    allRows.slice(1).forEach(row => {
+      const sku = forceText(row[0]);
+      const rawPrice = row[13];
+      const price = (rawPrice !== null && rawPrice !== undefined && rawPrice !== '')
+        ? (typeof rawPrice === 'number' ? String(rawPrice) : String(rawPrice).trim())
+        : '';
+      if (!sku || !price) return;
+      if (!woltData.magentoPriceMap[sku]) woltData.magentoPriceMap[sku] = price;
+      const norm = sku.toLowerCase().lstrip ? sku.toLowerCase().replace(/^0+/, '') || sku : sku;
+      if (!priceMapNorm[norm]) priceMapNorm[norm] = price;
+    });
+    woltData.magentoPriceMapNorm = priceMapNorm;
+    const count = Object.keys(woltData.magentoPriceMap).length;
+    setProgress('magentoprice', 100, `${count} prices loaded`, 'Complete');
+    setTimeout(() => {
+      document.getElementById('load-magentoprice').style.display = 'none';
+      document.getElementById('magentoprice-dropwrap').innerHTML = `<div class="dz-done-bar"><i class="ti ti-circle-check"></i><span>${fname} — ${count} prices loaded</span><button onclick="resetWoltFile('magentoprice')">Change</button></div>`;
+      maybeShowWoltResult();
+    }, 400);
+  }
+}
+
+function maybeShowWoltResult() {
+  // Download button appears as soon as Wolt + Stock files are both loaded
+  // (Magento Price Checker is optional)
+  if (woltData.woltRows && woltData.stockMap) {
+    const matched = woltData.woltRows.filter(r => woltData.stockMap[r.sku] !== undefined).length;
+    const priceNote = woltData.magentoPriceMap
+      ? ` · ${Object.keys(woltData.magentoPriceMap).length} prices from Magento`
+      : ' · No Magento prices (keeping Wolt prices)';
+    document.getElementById('wolt-match-info').textContent =
+      `${matched} of ${woltData.woltRows.length} SKUs matched${priceNote}`;
+    document.getElementById('wolt-result-row').style.display = 'block';
+  }
+}
+
+function resetWoltFile(id) {
+  const resetDZ = (dzId, title, sub) => {
+    document.getElementById(`load-${dzId}`).style.display = 'none';
+    document.getElementById(`${dzId}-dropwrap`).innerHTML =
+      `<div class="drop-zone" id="dz-${dzId}" onclick="document.getElementById('fi-${dzId}').click()">` +
+      `<div class="dz-cloud"><i class="ti ti-cloud-upload"></i></div>` +
+      `<div class="dz-title">${title}</div><div class="dz-sub">${sub}</div>` +
+      `<input type="file" id="fi-${dzId}" accept=".xlsx,.xls,.csv"></div>`;
+    rewireWoltDZ(dzId);
+  };
+  if (id === 'wolt') {
+    woltData.woltRows = null;
+    resetDZ('wolt', 'Upload Wolt Export', 'Drag &amp; Drop<br>Wolt &gt; Export Listing to Google Sheets<br><span style="color:#9a9690;font-size:11px">Select: merchant_sku, inventory total, Enabled</span>');
+  } else if (id === 'myexport') {
+    woltData.stockMap = null;
+    resetDZ('myexport', 'Upload Stock Export', 'Drag &amp; Drop<br>Import Inventory Valuation<br><span style="color:#9a9690;font-size:11px">Col A = merchant_sku &nbsp;·&nbsp; Col P = stock quantity</span>');
+  } else if (id === 'magentoprice') {
+    woltData.magentoPriceMap = null;
+    woltData.magentoPriceMapNorm = null;
+    resetDZ('magentoprice', 'Upload Magento Export', 'Drag &amp; Drop<br>Col A = merchant_sku &nbsp;·&nbsp; Col N = price &nbsp;·&nbsp; <em>Optional</em>');
+  }
+  document.getElementById('wolt-result-row').style.display = 'none';
+}
+
+function rewireWoltDZ(id) {
+  const dz = document.getElementById(`dz-${id}`);
+  const fi = document.getElementById(`fi-${id}`);
+  if (!dz || !fi) return;
+  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
+  dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('drag-over'); handleWoltFile(id, e.dataTransfer.files[0]); });
+  fi.addEventListener('change', e => handleWoltFile(id, e.target.files[0]));
+}
+
+function downloadWoltCSV() {
+  if (!woltData.woltRows || !woltData.stockMap) return;
+  const threshold = getWoltThreshold();
+  const escape = v => `"${String(v).replace(/"/g,'""')}"`;
+  // Output: inventory_mode | merchant_sku | price | enabled | total
+  const header = ['inventory_mode','merchant_sku','price','enabled','total'].map(escape).join(',');
+
+  const rows = woltData.woltRows.map(r => {
+    // Stock: from LS Retail file; fallback to Wolt original (sanitised on read)
+    const rawStock = woltData.stockMap[r.sku] !== undefined ? woltData.stockMap[r.sku] : r.total;
+    // Belt-and-braces: ensure we never output False, undefined, or NaN
+    const stockNum = parseFloat(rawStock);
+    const stock = (isNaN(stockNum) || rawStock === false || rawStock === 'False') ? '0' : String(stockNum);
+
+    // enabled: always recalculated from threshold — never passed through from Wolt
+    const enabled = threshold !== null && !isNaN(stockNum) && stockNum >= threshold ? 'TRUE' : 'FALSE';
+
+    // Price: from Magento if uploaded and found, else keep Wolt original
+    let price = r.price || '';
+    if (woltData.magentoPriceMap) {
+      const exact = woltData.magentoPriceMap[r.sku];
+      if (exact) {
+        price = exact;
+      } else if (woltData.magentoPriceMapNorm) {
+        const norm = r.sku.toLowerCase().replace(/^0+/, '') || r.sku;
+        price = woltData.magentoPriceMapNorm[norm] || r.price || '';
+      }
+    }
+
+    return ['inventory', r.sku, price, enabled, stock].map(escape).join(',');
+  });
+
+  const blob = new Blob(['\uFEFF' + header + '\n' + rows.join('\n')], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'Wolt updated stock amount.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+// ── END STEP 4 ───────────────────────────────────────────────────────────────
+
+// ── STEP 5: CHECK STOCK ──────────────────────────────────────────────────────
+let checkStockData = { rows1: null, headers1: null, skuSet2: null };
+
+(function initCheckStockDZ() {
+  ['checkstock1','checkstock2'].forEach(id => {
+    const dz = document.getElementById(`dz-${id}`);
+    const fi = document.getElementById(`fi-${id}`);
+    if (!dz || !fi) return;
+    dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
+    dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
+    dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('drag-over'); handleCheckStockFile(id, e.dataTransfer.files[0]); });
+    fi.addEventListener('change', e => handleCheckStockFile(id, e.target.files[0]));
+  });
+})();
+
+function handleCheckStockFile(id, file) {
+  if (!file) return;
+  document.getElementById(`load-${id}`).style.display = 'block';
+  setProgress(id, 10, 'Reading file…');
+  const reader = new FileReader();
+  reader.onload = e => { setProgress(id, 40, 'Parsing…'); setTimeout(() => processCheckStockFile(id, e.target.result, file.name), 30); };
+  reader.readAsArrayBuffer(file);
+}
+
+function processCheckStockFile(id, buffer, fname) {
+  let allRows;
+  try { allRows = parseXLSX(buffer); } catch(e) {
+    document.getElementById(`load-${id}-step`).textContent = 'Error: ' + e.message; return;
+  }
+  if (id === 'checkstock1') {
+    checkStockData.headers1 = (allRows[0] || []).map(h => h !== null && h !== undefined ? String(h) : '');
+    checkStockData.rows1 = allRows.slice(1).filter(row => row && row[0] !== null && row[0] !== undefined && forceText(row[0]));
+    setProgress('checkstock1', 100, `${checkStockData.rows1.length} rows loaded`, 'Complete');
+    setTimeout(() => {
+      document.getElementById('load-checkstock1').style.display = 'none';
+      document.getElementById('checkstock1-dropwrap').innerHTML = `<div class="dz-done-bar"><i class="ti ti-circle-check"></i><span>${fname} — ${checkStockData.rows1.length} rows</span><button onclick="resetCheckStockFile('checkstock1')">Change</button></div>`;
+      maybeShowCheckStockResult();
+    }, 400);
+  } else {
+    checkStockData.skuSet2 = new Set();
+    allRows.forEach(row => { const sku = forceText(row[0]); if (sku) checkStockData.skuSet2.add(sku); });
+    setProgress('checkstock2', 100, `${checkStockData.skuSet2.size} SKUs loaded`, 'Complete');
+    setTimeout(() => {
+      document.getElementById('load-checkstock2').style.display = 'none';
+      document.getElementById('checkstock2-dropwrap').innerHTML = `<div class="dz-done-bar"><i class="ti ti-circle-check"></i><span>${fname} — ${checkStockData.skuSet2.size} SKUs</span><button onclick="resetCheckStockFile('checkstock2')">Change</button></div>`;
+      maybeShowCheckStockResult();
+    }, 400);
+  }
+}
+
+function maybeShowCheckStockResult() {
+  if (checkStockData.rows1 && checkStockData.skuSet2) {
+    const missing = checkStockData.rows1.filter(row => !checkStockData.skuSet2.has(forceText(row[0]))).length;
+    document.getElementById('checkstock-match-info').textContent = `${missing} SKUs not in Wolt merchant list (out of ${checkStockData.rows1.length} total)`;
+    document.getElementById('checkstock-result-row').style.display = 'block';
+  }
+}
+
+function resetCheckStockFile(id) {
+  if (id === 'checkstock1') {
+    checkStockData.rows1 = null; checkStockData.headers1 = null;
+    document.getElementById('load-checkstock1').style.display = 'none';
+    document.getElementById('checkstock1-dropwrap').innerHTML = `<div class="drop-zone" id="dz-checkstock1" onclick="document.getElementById('fi-checkstock1').click()"><div class="dz-cloud"><i class="ti ti-cloud-upload"></i></div><div class="dz-title">Upload Wolt Stock Export</div><div class="dz-sub">Drag &amp; Drop<br>Col A = merchant_sku · all columns kept in output</div><input type="file" id="fi-checkstock1" accept=".xlsx,.xls,.csv"></div>`;
+  } else {
+    checkStockData.skuSet2 = null;
+    document.getElementById('load-checkstock2').style.display = 'none';
+    document.getElementById('checkstock2-dropwrap').innerHTML = `<div class="drop-zone" id="dz-checkstock2" onclick="document.getElementById('fi-checkstock2').click()"><div class="dz-cloud"><i class="ti ti-cloud-upload"></i></div><div class="dz-title">Upload Merchant SKU List</div><div class="dz-sub">Drag &amp; Drop<br>Col A = merchant_sku</div><input type="file" id="fi-checkstock2" accept=".xlsx,.xls,.csv"></div>`;
+  }
+  ['checkstock1','checkstock2'].forEach(dzId => {
+    const dz = document.getElementById(`dz-${dzId}`), fi = document.getElementById(`fi-${dzId}`);
+    if (!dz || !fi) return;
+    dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
+    dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
+    dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('drag-over'); handleCheckStockFile(dzId, e.dataTransfer.files[0]); });
+    fi.addEventListener('change', e => handleCheckStockFile(dzId, e.target.files[0]));
+  });
+  document.getElementById('checkstock-result-row').style.display = 'none';
+}
+
+function downloadCheckStockCSV() {
+  if (!checkStockData.rows1 || !checkStockData.skuSet2) return;
+  const escape = v => `"${String(v === null || v === undefined ? '' : v).replace(/"/g,'""')}"`;
+  const header = checkStockData.headers1.map(escape).join(',');
+  const missingRows = checkStockData.rows1.filter(row => !checkStockData.skuSet2.has(forceText(row[0])));
+  const rows = missingRows.map(row => checkStockData.headers1.map((_, i) => escape(row[i] !== null && row[i] !== undefined ? row[i] : '')).join(','));
+  const blob = new Blob(['\uFEFF' + header + '\n' + rows.join('\n')], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = 'Check Stock Missing SKUs.csv'; a.click();
+  URL.revokeObjectURL(url);
+}
+// ── END STEP 5 ───────────────────────────────────────────────────────────────
+
+function showPage(page) {
+  // Hide all pages
+  ['home','import','wolt','check'].forEach(p => {
+    const el = document.getElementById(`page-${p}`);
+    if (el) el.className = 'page';
+  });
+  // Show selected page
+  const target = document.getElementById(`page-${page}`);
+  if (target) target.className = 'page active';
+  // Show/hide nav bar
+  const nav = document.getElementById('page-nav');
+  if (nav) nav.style.display = page === 'home' ? 'none' : 'flex';
+  // Update active nav button
+  ['import','wolt','check'].forEach(p => {
+    const btn = document.getElementById(`nav-btn-${p}`);
+    if (btn) btn.className = 'page-nav-btn' + (p === page ? ' active' : '');
+  });
+  // Scroll to top
+  window.scrollTo(0, 0);
+}
+
+function resetAll() { resetStep1(); }
+</script>
+</body>
+</html>
